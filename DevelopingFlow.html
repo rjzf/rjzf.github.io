@@ -1,0 +1,162 @@
+<!doctype html>
+
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .topnav {
+      overflow: hidden;
+      background-color: #841617;
+    }
+
+    .topnav a {
+      float: left;
+      color: #f2f2f2;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+      font-size: 17px;
+    }
+
+    .topnav a:hover {
+      background-color: #ddd;
+      color: black;
+    }
+
+	body {background-color:#d3d3d3; font-family:Arial, sans-serif; font-size:14px;
+					text-align:center;}						                /* gray background, center everything */
+	p {margin-left:auto; margin-right:auto; width:600px;}	/* keep paragraphs narrow and centered */
+	input {font-size:115%;}					              				/* make buttons bigger */
+	input[type="range"] {width:90px;}					          	/* make sliders shorter */
+	select {font-size:115%;}							              	/* make selectors bigger too */
+	li {text-align:left;}
+  
+  </style>
+</head>
+
+<body>
+  <div class="topnav">
+    <a href="DevelopingFlow.html"> Developing Flow</a>
+    <a href="PipeBuilder.Html"> Pipe Builder</a>
+    <a href="ReferencesandDisclaimer.html"> Disclaimer and References</a>
+  </div>  
+  <p>Internal Developing Flow Sim</p>
+
+    <!-- Create Canvas -->
+    <canvas id="theCanvas" width="750" height="240"> 
+     This application runs only in modern 
+     browsers. For best results, use Google Chrome.</canvas>
+    
+    <!-- Sim Controls -->
+    <div>
+        <input id="resetFluidButton" type="button" onclick="initFluid()" value="Reset fluid"> 
+        <input id="stepButton" type="button" onclick="simulate()" value="Step">
+        <input id="startButton" type="button" onclick="startStop()" value="Start">
+    </div>
+    <div>
+        Flow speed = <span id="speedValue">0.100</span> 
+        <input id="speedSlider" type="range" min="0" max="0.12" step="0.005" value="0.1" onchange="adjustSpeed()">
+        Viscosity = <span id="viscValue">0.020</span>
+        <input id="viscSlider" type="range" min="0.01" max="0.2" step="0.005" value="0.02" onchange="adjustViscosity()">
+    </div>
+    <div>
+        <select id="plotSelect" onchange="paintCanvas()">
+            <option>Plot x velocity</option>
+            <option>Plot y velocity</option>
+            <option selected>Plot speed</option>
+            <option>Plot curl</option>
+        </select>
+        Contrast:
+        <input id="contrastSlider" type="range" min="-10" max="10" step="1" value="0" onchange="paintCanvas()">
+    </div>
+    <div>
+        Animation speed:
+        <input id="stepsSlider" type="range" min="1" max="40" step="1" value="8" onchange="resetTimer()">
+        Steps per second: <span id="speedReadout">0</span>
+        <input id="rafCheck" type="checkbox" checked onchange="resetTimer()">Faster?
+    </div>
+    <div style="margin-top:4px">
+        Show:
+        <input id="tracerCheck" type="checkbox" onchange="initTracers()">Tracers
+        <input id="sensorCheck" type="checkbox" onchange="paintCanvas()">Sensor
+        <input id="dragCheck" type="checkbox" onchange="paintCanvas()">Drag Fluid
+    </div>
+    <div id="dataSection" style="display:none">
+        <textarea id="dataArea" rows="8" cols="50" disabled readonly></textarea>
+        <div>
+            <input id="dataButton" type="button" value="Start data collection" onclick="startOrStopData()">
+            <input id="debugButton" type="button" value="Debug" onclick="debug()" style="display:none">
+        </div>
+    </div>
+  </div>
+  <p style="text-align:center">
+    <b>FOREWORD</b>
+  </p>
+  <p style="text-align:left">
+  A very, very, VERY special thank you to <a href="http://physics.weber.edu/schroeder/">Dr. Dan Schroeder</a> 
+  from Weber State University for doing most of the leg work for this project. While this project did not take 
+  me a long time, since it is just a restructuring of his existing program, I spent a LONG time looking through 
+  his various resources such as his <a href="http://physics.weber.edu/schroeder/html5/">workshop on how to create applications like this</a>
+   and his book <a href="http://physics.weber.edu/schroeder/javacourse/javamanual.pdf">Physics Simulations in Java</a>.
+   In my references and disclaimer page please go through and learn about these things yourself if you are inspired like I was.
+  </p>
+  
+  <p style="text-align:center">
+    <b>What is happening?</b>
+  </p>
+  <p style="text-align:left">
+    Developing and developed flow are characteristics of how a fluid progresses through a pipe. As a fluid enters 
+    a pipe it starts off as uniform. This is when the velocity profile is the same from the wall to the center, which 
+    means that the flow is basically the same no matter where velocity is measured. The liquid immediately goes into 
+    developing flow after the initial entry. Developing flow, something that is kind of hard to visualize, is the flow 
+    of a fluid that is experiencing the friction effects of the walls. If you can imagine the flow being split into 
+    sheets or layers, the layers closest to the wall experiences a stronger friction force, and at the wall the speed 
+    is zero! Initially, the flow is not affected by the friction very much and most of the flow is still uniform. The 
+    layer where the fluid is between the uniform and friction affected flow is called the boundary layer. The boundary 
+    layer grows closer to the center of the pipe as the flow goes through. This is a very important marker for the 
+    developing flow since as soon as the boundary layer reaches the middle the flow is considered developed. The 
+    distance and time it takes for a flow to become developed relies on things like the fluid properties (i.e. 
+    viscosity and velocity) and the pipe properties like wall roughness, design, size, etc. In short, this website 
+    shows a simplified real-time example of how internal flow develops. If you have not already, hit the start button 
+    above and watch what happens!
+  </p>
+  
+  <p style="text-align:center">
+    <b>How was this made?</b>
+  </p>
+  <p style="text-align:left">
+    This program uses JavaScript to create a lattice-Boltzmann algorithm array to simulate the rightward flow of an 
+    arbitrary fluid. Lattice-Boltzmann methods create a square array in which every node is affected by all of its 
+    surrounding neighbors, including diagonals. The program solves the entire array for one iteration and then presents 
+    the new mathematical findings as a snapshot in the above canvas. It is impossible to treat the fluid as a lot of very 
+    small particles or to make the nodes infinitely small since there would be no way to quantify the effect on one node 
+    to another node. This method is a good way to discretize, or approximate, the flow. Many computational solvers work in 
+    a way similar to this, where an object is represented by a lot of smaller elements or nodes that are then calculated by 
+    the way they affect each other. Two important elements to consider here are the boundary conditions and the meshing. 
+    The boundary conditions define how we are going to start are calculations, so in this case there is a rightward flow with 
+    walls on the top and bottom. The meshing is the array or node structure that defines the equations to be solved within each 
+    node. The above nodes are put together at a fairly low resolution because I saw it as a good balance between performance 
+    and clarity. For more on this subject, and for a better explanation than I could give you, please read this 
+    <a href="http://physics.weber.edu/schroeder/javacourse/LatticeBoltzmann.pdf">Paper</a>, 
+    <a href="https://en.wikipedia.org/wiki/Lattice_Boltzmann_methods">Wikipedia page</a>, and read the Disclaimer and References page. 
+  </p>
+
+  <p style="text-align:center">
+    <b>Why make this?</b>
+  </p>
+  <p style="text-align:left">
+    Just a fun little summer project. Hopefully it helps someone at some point. 
+  </p>
+
+  </div>
+    
+    <script src="DevelopingFLow.js"></script>
+</body>
+
+</html>
