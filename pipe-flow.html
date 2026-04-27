@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pipe Flow | Ryan Myers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        canvas { background-color: #000; max-width: 100%; height: auto; display: block; margin: 0 auto; cursor: crosshair; }
+        .sim-btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; border: none; }
+        .light .sim-btn { background-color: #841617; color: white; }
+        .dark .sim-btn { background-color: #32CD32; color: black; }
+        .sim-ctrl-card { display: flex; flex-direction: column; gap: 2rem; items: center; padding: 2rem; border-radius: 2rem; border: 1px solid rgba(0,0,0,0.05); }
+        .dark .sim-ctrl-card { background-color: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
+        .light .sim-ctrl-card { background-color: #f8fafc; }
+        .slider-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.5rem; display: block; }
+        input[type="range"] { cursor: pointer; width: 100%; }
+        
+        select { 
+            -webkit-appearance: none; 
+               -moz-appearance: none; 
+                    appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem top 50%;
+            background-size: 0.65rem auto;
+            border-radius: 0.25rem; 
+            padding: 0.5rem 2rem 0.5rem 0.5rem; 
+            font-size: 0.875rem;
+            border: 1px solid rgba(0,0,0,0.1);
+            background-color: white;
+            color: black;
+            outline: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .dark select { 
+            background-color: #18181b; 
+            color: white; 
+            border-color: rgba(255,255,255,0.1);
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        }
+
+        pre { white-space: pre-wrap; font-family: inherit; font-size: 0.9em; line-height: 1.6; }
+        .accordion-link { text-decoration: underline; transition: opacity 0.2s; }
+        .accordion-link:hover { opacity: 0.7; }
+    </style>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+  <script type="module" crossorigin src="./assets/pipeFlow-Dmt_akmF.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/main-BtcDLlBT.js">
+  <link rel="stylesheet" crossorigin href="./assets/main-B0-rBUVk.css">
+</head>
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col">
+
+    <nav class="sticky top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5">
+        <div class="relative flex items-center justify-between px-6 md:px-12 h-16 w-full">
+            <div class="z-10">
+                <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
+                    Ryan J. Myers
+                </a>
+            </div>
+
+            <div class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
+                <div class="hidden md:flex items-center space-x-1 text-base font-semibold uppercase tracking-widest">
+                    <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Home</a>
+                    <a href="./about.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">About</a>
+                    <a href="./pipe-flow.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-crimson dark:text-green transition-all">Pipe Flow</a>
+                    <a href="./shock-tube.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Shock Tube</a>
+                    <a href="./visuals.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Visuals</a>
+                    <a href="./other.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Other</a>
+                </div>
+                <button id="menu-toggle" class="md:hidden h-10 w-52 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
+                    <span class="text-2xl">☰</span>
+                </button>
+            </div>
+
+            <div class="z-10">
+                <button id="theme-toggle" class="group h-10 w-10 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all focus:outline-none">
+                    <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]">💡</span>
+                    <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity">💡</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden w-full bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
+            <div class="px-6 py-12 flex flex-col items-center justify-center space-y-8 text-2xl font-bold uppercase tracking-[0.3em] text-black dark:text-white">
+                <a href="./index.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Home</a>
+                <a href="./about.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">About</a>
+                <a href="./pipe-flow.html" class="text-crimson dark:text-green hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Pipe Flow</a>
+                <a href="./shock-tube.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Shock Tube</a>
+                <a href="./visuals.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Visuals</a>
+                <a href="./other.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Other</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-6 py-12 flex-grow w-full">
+        <h1 class="text-5xl font-bold mb-8 text-crimson dark:text-green text-center">Pipe Flow</h1>
+
+        <div class="sim-ctrl-card mb-12">
+            <canvas id="theCanvas" width="750" height="240"> 
+                This application runs only in modern browsers.
+            </canvas>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 w-full max-w-4xl">
+                <div class="space-y-4">
+                    <span class="slider-label">Execution</span>
+                    <div class="flex gap-2 mb-2">
+                        <input id="resetFluidButton" type="button" onclick="initFluid()" value="Reset" class="sim-btn flex-1"> 
+                        <input id="startButton" type="button" onclick="startStop()" value="Start" class="sim-btn flex-1">
+                    </div>
+                    <div class="text-[10px] font-bold opacity-60 uppercase space-y-2">
+                        <div>
+                            Animation speed:
+                            <input id="stepsSlider" type="range" min="1" max="40" step="1" value="8" onchange="resetTimer()" class="accent-crimson dark:accent-green mt-1">
+                        </div>
+                        <div>Steps/sec: <span id="speedReadout" class="text-crimson dark:text-green">0</span></div>
+                        <label class="cursor-pointer flex items-center gap-2"><input id="rafCheck" type="checkbox" checked onchange="resetTimer()" class="accent-crimson dark:accent-green"> Frame Limiter</label>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <span class="slider-label">Flow Speed: <span id="speedValue" class="text-crimson dark:text-green ml-1">0.090</span></span>
+                        <input id="speedSlider" type="range" min="0" max="0.12" step="0.005" value="0.05" onchange="adjustSpeed()" class="accent-crimson dark:accent-green">
+                    </div>
+                    <div>
+                        <span class="slider-label">Viscosity: <span id="viscValue" class="text-crimson dark:text-green ml-1">0.030</span></span>
+                        <input id="viscSlider" type="range" min="0.01" max="0.2" step="0.005" value="0.03" onchange="adjustViscosity()" class="accent-crimson dark:accent-green">
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <span class="slider-label">Contrast</span>
+                        <input id="contrastSlider" type="range" min="-10" max="10" step="1" value="2" onchange="paintCanvas()" class="accent-crimson dark:accent-green">
+                    </div>
+                    <div class="flex flex-col gap-3 text-[10px] font-bold uppercase tracking-widest opacity-80 pt-1">
+                        <label class="flex items-center gap-2 cursor-pointer"><input id="tracerCheck" type="checkbox" checked onchange="initTracers()" class="accent-crimson dark:accent-green"> Tracers</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input id="sensorCheck" type="checkbox" onchange="paintCanvas()" class="accent-crimson dark:accent-green"> Sensor</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input id="dragCheck" type="checkbox" onchange="paintCanvas()" class="accent-crimson dark:accent-green"> Drag Fluid</label>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="slider-label">Resolution</span>
+                    <select id="sizeSelect" onchange="changeResolution()" class="w-full">
+                        <option value="3">High (3px/cell)</option>
+                        <option value="5" selected>Medium (5px/cell)</option>
+                        <option value="6">Low (6px/cell)</option>
+                        <option value="10">Very Low (10px/cell)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <span class="slider-label">Obstacles</span>
+                    <select id="obstacleSelect" onchange="changeObstacle()" class="w-full">
+                        <option value="none" selected>None</option>
+                        <option value="step">Backwards Facing Step</option>
+                        <option value="fstep">Forward Facing Step</option>
+                        <option value="cylinder">Center Cylinder</option>
+                        <option value="inline">Inline Tubes</option>
+                        <option value="staggered">Staggered Tubes</option>
+                        <option value="baffle">Bottom Baffle</option>
+                    </select>
+                </div>
+
+                <div>
+                    <span class="slider-label">Plot Selection</span>
+                    <select id="plotSelect" onchange="paintCanvas()" class="w-full">
+                        <option>Plot x velocity</option>
+                        <option>Plot y velocity</option>
+                        <option selected>Plot speed</option>
+                        <option>Plot curl</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="dataSection" style="display:none" class="w-full max-w-4xl mt-8">
+                <textarea id="dataArea" rows="4" disabled readonly class="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded p-2 text-xs font-mono mb-2"></textarea>
+                <input id="dataButton" type="button" value="Start data collection" onclick="startOrStopData()" class="sim-btn">
+            </div>
+        </div>
+
+        <div class="space-y-4 max-w-4xl mx-auto mb-20">
+            
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">Update</span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed opacity-80">
+                    <p class="mb-6">
+                    Wow, it has been a while since I checked this out! This was a COVID project for me in undergrad where I frankly just wanted an internal flow simulator and found an app online to modify. Looking back at my writing and the project itself, I would probably give myself a C+, and that is being generous. I am keeping the writing as it is for posterity. I find it very endearing to see what I used to do and hope it serves as an example of improvement over time.
+                    </p>
+                    <p>
+                    Speaking of that improvement, I have decided to make some updates to the app itself now that I am a bit more capable at what I do. I have made the calculations significantly faster by assigning float-specific arrays where applicable, reworking a couple of calls to work better together, and refining the resolution. I have also added the ability to change the resolution and included some pre-made obstacles. The obstacles should all work with the base initial conditions, so feel free to mess with them and break it. You can break it quite quickly on the forward-facing step!
+                    </p>
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">Foreword</span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed opacity-80">
+                    A very, very, VERY special thank you to <a href="http://physics.weber.edu/schroeder/" class="accordion-link">Dr. Dan Schroeder</a> 
+                    from Weber State University for doing most of the leg work for this project. While this project did not take 
+                    me a long time, since it is just a restructuring of his existing program, I spent a LONG time looking through 
+                    his various resources such as his <a href="http://physics.weber.edu/schroeder/html5/" class="accordion-link">workshop on how to create applications like this</a>
+                    and his book <a href="http://physics.weber.edu/schroeder/javacourse/javamanual.pdf" class="accordion-link">Physics Simulations in Java</a>.
+                    In my references and disclaimer page please go through and learn about these things yourself if you are inspired like I was.
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">What is happening?</span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed opacity-80">
+                    Developing and developed flow are characteristics of how a fluid progresses through a pipe. As a fluid enters 
+                    a pipe it starts off as uniform. This is when the velocity profile is the same from the wall to the center, which 
+                    means that the flow is basically the same no matter where velocity is measured. The liquid immediately goes into 
+                    developing flow after the initial entry. Developing flow, something that is kind of hard to visualize, is the flow 
+                    of a fluid that is experiencing the friction effects of the walls. If you can imagine the flow being split into 
+                    sheets or layers, the layers closest to the wall experiences a stronger friction force, and at the wall the speed 
+                    is zero! Initially, the flow is not affected by the friction very much and most of the flow is still uniform. The 
+                    layer where the fluid is between the uniform and friction affected flow is called the boundary layer. The boundary 
+                    layer grows closer to the center of the pipe as the flow goes through. This is a very important marker for the 
+                    developing flow since as soon as the boundary layer reaches the middle the flow is considered developed. The 
+                    distance and time it takes for a flow to become developed relies on things like the fluid properties (i.e. 
+                    viscosity and velocity) and the pipe properties like wall roughness, design, size, etc. In short, this website 
+                    shows a simplified real-time example of how internal flow develops. If you have not already, hit the start button 
+                    above and watch what happens!
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">How was this made?</span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed opacity-80">
+                    This program uses JavaScript to create a D2Q9 (2 dimensions and 9 weighted quadrants) lattice Boltzmann algorithm array to simulate the rightward flow of an 
+                    arbitrary fluid. Lattice Boltzmann methods create a square array in which every node is affected by all of its 
+                    surrounding neighbors, including diagonals. The program solves the entire array for one iteration and then presents 
+                    the new mathematical findings as a snapshot in the above canvas. It is impossible to treat the fluid as a lot of very 
+                    small particles or to make the nodes infinitely small since there would be no way to quantify the effect on one node 
+                    to another node. This method is a good way to discretize, or approximate, the flow. Many computational solvers work in 
+                    a way similar to this, where an object is represented by a lot of smaller elements or nodes that are then calculated by 
+                    the way they affect each other. Two important elements to consider here are the boundary conditions and the meshing. 
+                    The boundary conditions define how we are going to start are calculations, so in this case there is a rightward flow with 
+                    walls on the top and bottom. The meshing is the array or node structure that defines the equations to be solved within each 
+                    node. The above nodes are put together at a fairly low resolution because I saw it as a good balance between performance 
+                    and clarity. For more on this subject, and for a better explanation than I could give you, please read this 
+                    <a href="http://physics.weber.edu/schroeder/javacourse/LatticeBoltzmann.pdf" class="accordion-link">Paper</a>, 
+                    <a href="https://en.wikipedia.org/wiki/Lattice_Boltzmann_methods" class="accordion-link">Wikipedia page</a>, and read the Disclaimer and References page.
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">Disclaimer</span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed opacity-80">
+                    <pre>Copyright 2013, Daniel V. Schroeder
+
+                        Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+                        The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+                        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+                        Except as contained in this notice, the name of the author shall not be used in advertising or otherwise to promote the sale, use or other dealings in this Software without prior written authorization.</pre>
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">References</span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed opacity-80 space-y-4">
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><a href="http://physics.weber.edu/schroeder/" class="accordion-link">Dr. Schroeder’s Website</a></li>
+                        <li><a href="http://physics.weber.edu/schroeder/fluids/" class="accordion-link">Dr. Shroeder’s Simulation</a></li>
+                        <li><a href="http://physics.weber.edu/schroeder/software/" class="accordion-link">Other JavaScript Apps</a></li>
+                        <li><a href="http://physics.weber.edu/schroeder/javacourse/LatticeBoltzmann.pdf" class="accordion-link">Dr. Shroeder’s Paper on LBM</a></li>
+                        <li><a href="http://physics.weber.edu/schroeder/html5/" class="accordion-link">Workshop on how to create apps</a></li>
+                        <li><a href="http://physics.weber.edu/schroeder/javacourse/javamanual.pdf" class="accordion-link">Dr. Shroeder’s Book on JavaScript Physics</a></li>
+                        <li><a href="https://www.ndsu.edu/fileadmin/physics.ndsu.edu/Wagner/LBbook.pdf" class="accordion-link">Dr. Wagner’s introduction to LBM</a></li>
+                        <li>My fluid mechanics book: Fundamentals of Fluid Mechanics. B. R. Munson, T. H. Okiishi, W. W. Huebsch, and A. P.Rothmayer. Hoboken, NJ: John Wiley & Sons, Inc., 2013.</li>
+                        <li><a href="https://lorenabarba.com/blog/cfd-python-12-steps-to-navier-stokes/" class="accordion-link">12 Steps to Navier Stokes by Dr. Barba</a></li>
+                        <li>While I have used many CFD guides, I personally think <a href="https://cfd2012.com/uploads/3/5/1/0/35107563/cfdebook_v4.pdf" class="accordion-link">this one by Dr. Makky</a> is the best for my level of understanding.</li>
+                        <li><a href="https://dragonfly.tam.cornell.edu/teaching/mae5230-cfd-intro-notes.pdf" class="accordion-link">Also, this introduction by Dr. Bhaskaran and Dr. Collins is fantastic</a></li>
+                        <li><a href="https://www.w3schools.com/" class="accordion-link">W3Schools’ extensive resources on web development</a></li>
+                    </ul>
+                    <p class="mt-4 italic">Lastly, thank you to my professors who have given me the foundation of knowledge and interest to learn more about all of this.</p>
+                </div>
+            </details>
+
+        </div>
+    </main>
+
+    <footer class="fixed bottom-2 right-6 z-10">
+        <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
+            © 2026 Ryan Myers. Code under MIT.
+        </p>
+    </footer>
+
+</body>
+</html>
