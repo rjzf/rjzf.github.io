@@ -11,10 +11,11 @@
     
     <style>
         canvas { background-color: #000; max-width: 100%; height: auto; display: block; margin: 0 auto; cursor: crosshair; }
-        .sim-btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; border: none; }
-        .light .sim-btn { background-color: #841617; color: white; }
-        .dark .sim-btn { background-color: #32CD32; color: black; }
-        .sim-ctrl-card { display: flex; flex-direction: column; gap: 2rem; items: center; padding: 2rem; border-radius: 2rem; border: 1px solid rgba(0,0,0,0.05); }
+        .sim-btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; border: none; background-color: #e2e8f0; color: #000; }
+        .sim-btn:hover { background-color: #e2e8f0; }
+        .dark .sim-btn { background-color: #32CD32; color: #000; }
+        .dark .sim-btn:hover { background-color: #32CD32; }
+        .sim-ctrl-card { display: flex; flex-direction: column; gap: 2rem; align-items: center; padding: 2rem; border-radius: 2rem; border: 1px solid rgba(0,0,0,0.05); }
         .dark .sim-ctrl-card { background-color: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
         .light .sim-ctrl-card { background-color: #f8fafc; }
         .slider-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.5rem; display: block; }
@@ -59,9 +60,9 @@
             }
         })();
     </script>
-  <script type="module" crossorigin src="./assets/pipeFlow-Dmt_akmF.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/main-BtcDLlBT.js">
-  <link rel="stylesheet" crossorigin href="./assets/main-B0-rBUVk.css">
+  <script type="module" crossorigin src="./assets/pipeFlow-COsNjKcr.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/main-9R3hBvuQ.js">
+  <link rel="stylesheet" crossorigin href="./assets/main-SdBOMV1H.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col">
 
@@ -79,6 +80,7 @@
                     <a href="./about.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">About</a>
                     <a href="./pipe-flow.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-crimson dark:text-green transition-all">Pipe Flow</a>
                     <a href="./shock-tube.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Shock Tube</a>
+                    <a href="./sandbox.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Sandbox</a>
                     <a href="./visuals.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Visuals</a>
                     <a href="./other.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Other</a>
                 </div>
@@ -101,6 +103,7 @@
                 <a href="./about.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">About</a>
                 <a href="./pipe-flow.html" class="text-crimson dark:text-green hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Pipe Flow</a>
                 <a href="./shock-tube.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Shock Tube</a>
+                <a href="./sandbox.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Sandbox</a>
                 <a href="./visuals.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Visuals</a>
                 <a href="./other.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Other</a>
             </div>
@@ -207,7 +210,7 @@
                     Wow, it has been a while since I checked this out! This was a COVID project for me in undergrad where I frankly just wanted an internal flow simulator and found an app online to modify. Looking back at my writing and the project itself, I would probably give myself a C+, and that is being generous. I am keeping the writing as it is for posterity. I find it very endearing to see what I used to do and hope it serves as an example of improvement over time.
                     </p>
                     <p>
-                    Speaking of that improvement, I have decided to make some updates to the app itself now that I am a bit more capable at what I do. I have made the calculations significantly faster by assigning float-specific arrays where applicable, reworking a couple of calls to work better together, and refining the resolution. I have also added the ability to change the resolution and included some pre-made obstacles. The obstacles should all work with the base initial conditions, so feel free to mess with them and break it. You can break it quite quickly on the forward-facing step!
+                    Speaking of that improvement, I have decided to make some updates to the app itself now that I am a bit more capable at what I do. I want to clarify that this is a constant mass flow pipe, so keep that in mind when looking at the results. I have made the calculations significantly faster by assigning float-specific arrays where applicable, reworking a couple of calls to work better together, and refining the resolution. I have also added the ability to change the resolution and included some pre-made obstacles. The obstacles should all work with the base initial conditions, so feel free to mess with them and break it. You can break it quite quickly on the forward-facing step!
                     </p>
                 </div>
             </details>
