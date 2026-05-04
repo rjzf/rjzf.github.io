@@ -1,1 +1,0 @@
-The javascript files are named for the HTML file they are in. E.g. the app on the pipe-flow webpage is in pipe-flow.js. You should be able to just copy and paste it into a <script> environment at the bottom of the html file for it to work.

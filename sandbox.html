@@ -9,6 +9,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
+    
+    <style>
+        /* Forces the native browser dropdown options box to match the dark theme */
+        .dark { color-scheme: dark; }
+        
+        .slider-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.5rem; display: block; }
+        input[type="range"] { cursor: pointer; width: 100%; }
+        
+        select { 
+            -webkit-appearance: none; 
+               -moz-appearance: none; 
+                    appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem top 50%;
+            background-size: 0.65rem auto;
+            border-radius: 0.25rem; 
+            padding: 0.5rem 2rem 0.5rem 0.5rem; 
+            font-size: 0.875rem;
+            border: 1px solid rgba(0,0,0,0.1);
+            background-color: white;
+            color: black;
+            outline: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .dark select { 
+            background-color: #18181b; 
+            color: white; 
+            border-color: rgba(255,255,255,0.1);
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        }
+
+        pre { white-space: pre-wrap; font-family: inherit; font-size: 0.9em; line-height: 1.6; }
+        .accordion-link { text-decoration: underline; transition: opacity 0.2s; }
+        .accordion-link:hover { opacity: 0.7; }
+    </style>
+
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme');
@@ -20,19 +57,12 @@
             }
         })();
     </script>
-  <script type="module" crossorigin src="./assets/main-9R3hBvuQ.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-SdBOMV1H.css">
+  <script type="module" crossorigin src="./assets/main-DVbUp3qd.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-IROynpe1.css">
 </head>
-<body class="font-academic bg-white text-black dark:bg-black dark:text-white h-screen overflow-hidden transition-colors duration-300">
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col">
 
-    <div class="fixed top-0 left-0 w-full h-full z-[-2] overflow-hidden">
-        <video id="bg-video" autoplay muted loop playsinline class="w-full h-full object-cover opacity-45 grayscale">
-            <source src="./background.mp4" type="video/mp4">
-        </video>
-        <div class="absolute top-0 left-0 w-full h-full bg-white/10 dark:bg-black/30"></div>
-    </div>
-
-    <nav class="fixed top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5">
+    <nav class="sticky top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5">
         <div class="relative flex items-center justify-between px-6 md:px-12 h-16 w-full">
             <div class="z-10">
                 <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
@@ -69,61 +99,407 @@
                 <a href="./about.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">About</a>
                 <a href="./pipe-flow.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Pipe Flow</a>
                 <a href="./shock-tube.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Shock Tube</a>
-                <a href="./sandbox.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Sandbox</a>
+                <a href="./sandbox.html" class="text-crimson dark:text-green hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Sandbox</a>
                 <a href="./visuals.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Visuals</a>
                 <a href="./other.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Other</a>
             </div>
         </div>
     </nav>
 
-    <main class="h-full flex flex-col justify-center items-center px-6">
-        <div class="w-full max-w-5xl p-8 md:p-16 bg-white dark:bg-black rounded-[3rem] shadow-2xl text-center border border-black/5 dark:border-white/5">
-            <h1 class="text-6xl md:text-9xl font-extrabold mb-8 tracking-tighter text-crimson dark:text-green">
-                Sandbox
-            </h1>
-            <p class="text-lg md:text-3xl text-black dark:text-white max-w-3xl mx-auto leading-relaxed mb-12 opacity-60 italic">
-                Small apps that are currently under development
-            </p>
-            
-            <div class="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 w-full max-w-4xl mx-auto">
-                <a href="./index.html" class="block w-full md:w-auto py-4 px-12 md:px-32 bg-crimson text-white dark:bg-green dark:text-black font-bold text-2xl md:text-3xl rounded-full shadow-2xl hover:-translate-y-1 transition-all duration-300 text-center">
-                    Return Home
-                </a>
+    <main class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
+        
+        <header class="text-center mb-16">
+            <h1 class="text-5xl font-bold mb-6 text-crimson dark:text-green">Sandbox</h1>
+            <p class="text-xl md:text-xl leading-relaxed text-black dark:text-white opacity-90"> 
+                This is the place for small apps that, for one reason or another, I don't think need their own website space. All information should be encapsulated in the accordion that the app lives in, please reach out if you have an interesting idea for this page!
+            </p>                
+        </header>
+
+        <div class="flex justify-end items-center mb-8">
+            <div class="flex space-x-4 text-[10px] font-bold uppercase tracking-widest opacity-60">
+                <button id="expand-all" class="hover:text-crimson dark:hover:text-green transition underline underline-offset-4">Expand All</button>
+                <span>/</span>
+                <button id="collapse-all" class="hover:text-crimson dark:hover:text-green transition underline underline-offset-4">Collapse All</button>
             </div>
         </div>
 
-        <footer class="fixed bottom-4 left-6 right-6 z-10 flex flex-col md:flex-row justify-between items-center gap-3">
-            <div class="order-1 md:order-1">
-                <button id="video-toggle" class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity whitespace-nowrap focus:outline-none flex items-center gap-2">
-                    <i class="fa-solid fa-pause text-xs"></i> <span id="video-toggle-text">Pause</span>
-                </button>
-            </div>
-            <div class="order-2 md:order-2">
-                <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity cursor-default text-center md:text-right">
-                    © 2026 Ryan Myers. Code under MIT. | 
-                    <a href="https://www.vecteezy.com/video/35908500-smoke-effect-with-black-background" target="_blank" rel="noopener" class="underline hover:text-crimson dark:hover:text-green transition-colors">Background Credit</a>
-                </p>
-            </div>
-        </footer>
+        <div class="space-y-4">
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">Logistic Map <span class="opacity-40 font-normal ml-2 text-lg">(Bifurcation theory)</span></span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    
+                    <div class="w-full flex flex-col items-center mb-8 gap-4">
+                        <div class="w-full h-64 bg-white rounded-xl border border-black/10 overflow-hidden shadow-inner relative">
+                            <canvas id="timeSeriesCanvas" width="800" height="300" class="w-full h-full block"></canvas>
+                        </div>
+                        
+                        <div class="w-full h-64 bg-white rounded-xl border border-black/10 overflow-hidden shadow-inner relative">
+                            <canvas id="bifurcationCanvas" width="800" height="300" class="w-full h-full block"></canvas>
+                        </div>
+
+                        <div class="flex flex-col gap-y-8 mt-6 w-full p-6 md:p-8 bg-slate-50 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5">
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full items-center">
+                                <button id="btn-play-pause" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Play</button>
+                                <button id="btn-reset" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Reset</button>
+                                <button id="btn-step" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Step</button>
+                                
+                                <div class="flex items-center justify-center gap-2 w-full h-full py-2.5 bg-transparent border border-transparent rounded-lg">
+                                    <label class="text-[10px] font-bold uppercase tracking-widest opacity-60">Step:</label>
+                                    <input type="number" id="step-size" min="0.001" max="1.0" step="0.001" value="0.050" class="w-16 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none focus:border-crimson dark:focus:border-green text-xs font-bold transition-colors">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+                                <div class="flex flex-col items-center w-full">
+                                    <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
+                                        Growth Rate (r): 
+                                        <input type="number" id="r-val" min="0" max="4" step="0.001" value="2.000" class="w-16 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none focus:border-crimson dark:focus:border-green transition-colors">
+                                    </label>
+                                    <input type="range" id="r-slider" min="0" max="4" step="0.001" value="2.0" class="w-10/12 max-w-xs accent-crimson dark:accent-green">
+                                </div>
+
+                                <div class="flex flex-col items-center w-full">
+                                    <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
+                                        Initial Pop (x₀): 
+                                        <input type="number" id="x0-val" min="0.01" max="0.99" step="0.01" value="0.50" class="w-14 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none focus:border-crimson dark:focus:border-green transition-colors">
+                                    </label>
+                                    <input type="range" id="x0-slider" min="0.01" max="0.99" step="0.01" value="0.5" class="w-10/12 max-w-xs accent-crimson dark:accent-green">
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest opacity-70">
+                                <span>Description</span>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs">↓</span>
+                            </summary>
+                            <div class="px-6 py-4 text-sm text-black/80 dark:text-white/80 border-t border-black/5 dark:border-white/5">
+                                <p class="mb-4">
+                                    The logistic map is a simple example of how chaos can form from very simple non-linear equations. While it is famous in physics for providing a qualitative map of the transition from order to chaos, its origins are actually rooted in biology. In the mid-1970s, biologist Robert May popularized this equation as a discrete-time model for animal populations. The variable x represents the population at a given time, scaled between 0 (extinction) and 1 (maximum carrying capacity). The equation x_n+1 = r * x_n * (1 - x_n) works through a simple feedback loop:
+                                </p>
+                                <ul class="list-disc list-inside space-y-2 mb-4 ml-2">
+                                    <li>Growth (r * x_n): This represents the birth rate. When the population is small, it grows proportionally to how many individuals are already there.</li>
+                                    <li>Starvation (1 - x_n): This represents the "limiting factor," such as food scarcity or disease. As the population x approaches 1 (the environment's limit), this term approaches zero, slowing down or crashing the population.</li>
+                                </ul>
+                                <p class="mb-4">
+                                    May’s breakthrough was showing that a single, deterministic biological rule could lead to stable equilibriums, predictable cycles, or total, unpredictable chaos just by changing the growth rate.
+                                </p>
+                                <p class="mb-4">
+                                    Its relation to fluids is that it is a simple handy comparison with laminar and turbulent flows. The growth rate parameter r acts as a mathematical proxy for the Reynolds number. Just as increasing the Reynolds number pushes a fluid from a steady, predictable state toward total chaos, increasing r drives the map through distinct phases:
+                                </p>
+                                <ul class="list-disc list-inside space-y-2 mb-4 ml-2">
+                                    <li>Steady State (r &lt; 3): This represents laminar flow. No matter where the population starts, the system eventually settles into a single, stable value.</li>
+                                    <li>Periodic Oscillation (3 &lt; r &lt; 3.57): As r increases, the system undergoes "period-doubling." The value begins to bounce between two points, then four, then eight. In fluid terms, this is analogous to the onset of instabilities, like the rhythmic shedding of vortices in a von Karman vortex street.</li>
+                                    <li>Deterministic Chaos (r &gt; 3.57): The system enters a regime of turbulence. The values appear random and never repeat, yet they are governed by a strictly deterministic equation, like the Navier-Stokes equations.</li>
+                                </ul>
+                                <p>
+                                    In the turbulent phase, two starting values, which we can consider some arbitrary initial fluid conditions that differ by even a microscopic amount, will eventually diverge into completely different paths. This sensitivity is exactly why predicting high-Reynolds number turbulent flows is so difficult. Small errors in the initial state can lead to vastly different results over time.
+                                </p>
+                            </div>
+                        </details>
+
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest opacity-70">
+                                <span>References</span>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs">↓</span>
+                            </summary>
+                            <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                                <ul class="space-y-3">
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Logistic_map" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Logistic Map</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Bifurcation_theory" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Bifurcation Theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Bifurcation_diagram" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Bifurcation Diagrams</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Pitchfork_bifurcation" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Pitchfork Bifurcations</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://math.libretexts.org/Bookshelves/Differential_Equations/Applied_Linear_Algebra_and_Differential_Equations_(Chasnov)/03%3A_III._Differential_Equations/11%3A_Nonlinear_Differential_Equations/11.02%3A_Bifurcation_Theory" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">LibreTexts: Bifurcation Theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://mathworld.wolfram.com/LogisticMap.html" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wolfram: Logistic Map</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://geoffboeing.com/2015/03/chaos-theory-logistic-map/" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">An Article on chaos theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://blbadger.github.io/logistic-map.html" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">A more in depth discussion on bifurcation theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://github.com/jonnyhyman/Chaos/tree/masterdraz" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">GitHub: Logistic Map Code</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.youtube.com/watch?v=ovJcsL7vyk" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Veritasium Video on Chaos Theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.cambridge.org/core/books/hydrodynamic-stability/A0E78BC88D5572AED79CCCE8B977707C" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Hydrodynamic Stability by the GOATs Drazin and Reid</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">Plinko <span class="opacity-40 font-normal ml-2 text-lg">(Central Limit Theorem)</span></span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    
+                    <div class="w-full flex flex-col items-center mb-8 gap-4">
+                        <div class="w-full h-[500px] bg-white rounded-xl border border-black/10 overflow-hidden shadow-inner relative">
+                            <canvas id="plinkoCanvas" width="800" height="500" class="w-full h-full block"></canvas>
+                        </div>
+
+                        <div class="flex flex-col gap-y-8 mt-6 w-full p-6 md:p-8 bg-slate-50 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5">
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full items-center border-b border-black/5 dark:border-white/5 pb-8">
+                                <button id="plinko-play-pause" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Play</button>
+                                <button id="plinko-reset" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Reset</button>
+                                <button id="plinko-batch" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Drop Batch</button>
+                                
+                                <div class="flex items-center justify-center h-full w-full py-2 bg-transparent border border-black/10 dark:border-white/10 rounded-lg px-2">
+                                    <label class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-widest opacity-80 hover:opacity-100 transition-opacity text-center leading-tight">
+                                        <input type="checkbox" id="plinko-overlay" checked class="accent-crimson dark:accent-green">
+                                        Gaussian Distribution
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-x-6 md:gap-x-12 gap-y-8 w-full">
+                                <div class="flex flex-col gap-8">
+                                    <div class="flex flex-col items-center w-full">
+                                        <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
+                                            Ball Count: <input type="number" id="plinko-ball-val" min="1" max="5000" step="1" value="250" class="w-16 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none">
+                                        </label>
+                                        <input type="range" id="plinko-ball-slider" min="1" max="5000" step="10" value="250" class="w-full accent-crimson dark:accent-green">
+                                    </div>
+                                    <div class="flex flex-col items-center w-full">
+                                        <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
+                                            Levels: <input type="number" id="plinko-level-val" min="4" max="25" step="1" value="11" class="w-10 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none">
+                                        </label>
+                                        <input type="range" id="plinko-level-slider" min="4" max="25" step="1" value="11" class="w-full accent-crimson dark:accent-green">
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col gap-8">
+                                    <div class="flex flex-col items-center w-full">
+                                        <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2 text-center">
+                                            Skew: <input type="number" id="plinko-prob-val" min="0" max="1" step="0.01" value="0.50" class="w-16 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none">
+                                        </label>
+                                        <input type="range" id="plinko-prob-slider" min="0" max="1" step="0.01" value="0.50" class="w-full accent-crimson dark:accent-green">
+                                    </div>
+                                    <div class="flex flex-col items-center w-full">
+                                        <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
+                                            Speed: <input type="number" id="plinko-speed-val" min="0" max="200" step="1" value="100" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none">
+                                        </label>
+                                        <input type="range" id="plinko-speed-slider" min="0" max="200" step="1" value="100" class="w-full accent-crimson dark:accent-green">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest opacity-70">
+                                <span>Description</span>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs">↓</span>
+                            </summary>
+                            <div class="px-6 py-4 text-sm text-black/80 dark:text-white/80 border-t border-black/5 dark:border-white/5">
+                                <p class="mb-4">
+                                    This simulation models a Plinko board, which nicely demonstrates the Central Limit Theorem. At every peg, a falling ball effectively flips a coin to decide whether to bounce left or right.
+                                </p>
+                                <p class="mb-4">
+                                    The bell curve emerges because of path combinatorics. There are far more ways for a ball to reach the center bins than the edges, ending up on the far side requires a rare "perfect streak" of turns in a single direction. In contrast, landing in the center can happen through many different left-right combinations.
+                                </p>
+                                <p>
+                                    This random process naturally results in a Gaussian distribution. You can use the Skew slider to rig the coin flip, shifting the probability to see how bias affects the final expected outcome of the distribution.
+                                </p>
+                            </div>
+                        </details>
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest opacity-70">
+                                <span>References</span>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs">↓</span>
+                            </summary>
+                            <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                                <ul class="space-y-3">
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Galton_board" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Galton Board</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Central_limit_theorem" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Central Limit Theorem</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://phet.colorado.edu/en/simulations/plinko-probability" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">A better web app describing Plinko probability</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://mathworld.wolfram.com/CentralLimitTheorem.html" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wolfram: Central Limit Theorem</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.youtube.com/watch?v=UCmPmkHqHXk&t=45s" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Video: Galton Board by the VSauce guy</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all text-black dark:text-white">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <span class="text-2xl font-bold uppercase tracking-wider">Black-Scholes-Merton Model</span>
+                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed">
+                    
+                    <div class="w-full flex flex-col items-center mb-6 gap-4">
+                        <div class="w-full max-w-[800px] aspect-[4/3] bg-white rounded-xl border border-black/10 overflow-hidden shadow-inner relative">
+                            <canvas id="bsCanvas" width="800" height="600" class="w-full h-full block"></canvas>
+                        </div>
+
+                        <div class="flex flex-col gap-y-8 mt-4 w-full p-6 md:p-8 bg-slate-100 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full items-end border-b border-black/10 dark:border-white/10 pb-8">
+                                
+                                <div>
+                                    <span class="slider-label">Expected Profit/Loss</span>
+                                    <div id="bs-price-display" class="w-full px-4 py-2 text-center rounded-lg font-mono text-2xl font-black border-2 border-black dark:border-white bg-white dark:bg-[#18181b] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]">
+                                        $0.00
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Current Stock Price: <input type="number" id="bs-s-val" value="100" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1"></span>
+                                    <input type="range" id="bs-s-slider" min="10" max="200" step="1" value="100" class="w-full accent-crimson dark:accent-green cursor-pointer">
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Option Type</span>
+                                    <select id="bs-type-select" class="w-full">
+                                        <option value="call" selected>Call Option (Bullish)</option>
+                                        <option value="put">Put Option (Bearish)</option>
+                                    </select>
+                                </div>
+                                
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-6 w-full">
+                                
+                                <div>
+                                    <span class="slider-label">Strike Price: <input type="number" id="bs-k-val" value="100" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1"></span>
+                                    <input type="range" id="bs-k-slider" min="10" max="200" step="1" value="100" class="w-full accent-crimson dark:accent-green">
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Time to Expiration (Days): <input type="number" id="bs-t-val" value="30" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1"></span>
+                                    <input type="range" id="bs-t-slider" min="1" max="365" step="1" value="30" class="w-full accent-crimson dark:accent-green">
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Volatility (%): <input type="number" id="bs-vol-val" value="20" min="1" max="100" step="1" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1"></span>
+                                    <input type="range" id="bs-vol-slider" min="1" max="100" step="1" value="20" class="w-full accent-crimson dark:accent-green">
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Option Cost ($): <input type="number" id="bs-cost-val" value="5.00" step="0.1" class="w-14 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1"></span>
+                                    <input type="range" id="bs-cost-slider" min="0" max="50" step="0.1" value="5.00" class="w-full accent-crimson dark:accent-green">
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 mt-8">
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest text-black/70 dark:text-white/70">
+                                <span>Description</span>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs">↓</span>
+                            </summary>
+                            <div class="px-6 py-4 text-sm text-black/80 dark:text-white/80 border-t border-black/5 dark:border-white/5">
+                                <p class="mb-4">
+                                    The Black-Scholes-Merton model is a Nobel Prize winning mathematical contribution used to determine the fair price of a financial option. At its core, the BSM model is a partial differential equation, specifically a diffusion equation. It models how the probability of an option's value diffuses through the market as it approaches expiration, linking it to the concept of geometric Brownian motion.
+                                </p>
+                                <p class="mb-4">
+                                    The model assumes that stock prices take a continuous "random walk" over time. By mapping this random spread, it calculates the probability that an option will cross its target threshold before the clock runs out. Some important concepts involved are:
+                                </p>
+                                <ul class="list-disc list-inside space-y-2 mb-4 ml-2">
+                                    <li>Current Price versus Strike Price: Where the asset is currently valued versus the target threshold it needs to hit.</li>
+                                    <li>Time to Expiration: How much time is left before the contract expires.</li>
+                                    <li>Volatility: This acts exactly like thermal conductivity in a heat transfer problem. Higher volatility means the probability "heat" spreads out much faster and wider, which increases the theoretical value of the option. This can be thought of as how erratically a stock has behaved in the past.</li>
+                                </ul>
+                                <p>
+                                    By comparing the theoretical value generated by this diffusion model against the actual cost to buy the option, you can estimate your expected profit or loss. This is all a massive simplification of a topic that is still challenging to me, and it doesn't even touch on the "Greeks" or the advanced statistical option analyses out there. Please look at the references for a more comprehensive discussion, as this was just an exercise for me to further explore financial engineering.
+                                </p>
+                            </div>
+                        </details>
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest text-black/70 dark:text-white/70">
+                                <span>References</span>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs">↓</span>
+                            </summary>
+                            <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                                <ul class="space-y-3">
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: BSM Model</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_equation" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: BSM Equation</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.investopedia.com/terms/b/blackscholes.asp" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Investopedia: BSM Overview</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://galton.uchicago.edu/~lalley/Courses/390/Lecture7.pdf" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Lecture on the BSM equation</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.khanacademy.org/economics-finance-domain/core-finance/derivative-securities/black-scholes/v/introduction-to-the-black-scholes-formula" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Khan Academy on BSM</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://blackscholesalgorithm.streamlit.app/Calculator" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">A much more comprehensive BSM calculator</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </details>
+
+        </div>
     </main>
 
+    <footer class="fixed bottom-2 right-6 z-10">
+        <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
+            © 2026 Ryan Myers. Code under MIT.
+        </p>
+    </footer>
+
     <script>
-        const bgVideo = document.getElementById('bg-video');
-        const videoToggle = document.getElementById('video-toggle');
-        const videoToggleText = document.getElementById('video-toggle-text');
-        const videoToggleIcon = videoToggle.querySelector('i');
-
-        videoToggle.addEventListener('click', () => {
-            if (bgVideo.paused) {
-                bgVideo.play();
-                videoToggleText.textContent = 'Pause';
-                videoToggleIcon.classList.replace('fa-play', 'fa-pause');
-            } else {
-                bgVideo.pause();
-                videoToggleText.textContent = 'Play';
-                videoToggleIcon.classList.replace('fa-pause', 'fa-play');
-            }
+        const expandBtn = document.getElementById('expand-all');
+        const collapseBtn = document.getElementById('collapse-all');
+        
+        expandBtn.addEventListener('click', () => {
+            document.querySelectorAll('details').forEach(detail => detail.open = true);
         });
-    </script>
+
+        collapseBtn.addEventListener('click', () => {
+            document.querySelectorAll('details').forEach(detail => detail.open = false);
+        });
+    </script>
 </body>
 </html>
