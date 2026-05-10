@@ -9,57 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <style>
-        canvas { background-color: #000; max-width: 100%; height: auto; display: block; margin: 0 auto; cursor: crosshair; }
-        .sim-btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; border: none; background-color: #e2e8f0; color: #000; }
-        .sim-btn:hover { background-color: #e2e8f0; }
-        .dark .sim-btn { background-color: #32CD32; color: #000; }
-        .dark .sim-btn:hover { background-color: #32CD32; }
-        .sim-ctrl-card { display: flex; flex-direction: column; gap: 2rem; align-items: center; padding: 2rem; border-radius: 2rem; border: 1px solid rgba(0,0,0,0.05); }
-        .dark .sim-ctrl-card { background-color: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
-        .light .sim-ctrl-card { background-color: #f8fafc; }
-        .slider-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.5rem; display: block; }
-        input[type="range"] { cursor: pointer; width: 100%; }
-        .number-input {
-            width: 100%;
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-            border: 1px solid rgba(0,0,0,0.2);
-            background-color: white;
-            color: black;
-            outline: none;
-        }
-        .dark .number-input {
-            background-color: #18181b;
-            color: white;
-            border-color: rgba(255,255,255,0.2);
-        }
-
-        select { 
-            -webkit-appearance: none; 
-               -moz-appearance: none; 
-                    appearance: none;
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.7rem top 50%;
-            background-size: 0.65rem auto;
-            border-radius: 0.25rem; 
-            padding: 0.5rem 2rem 0.5rem 0.5rem; 
-            font-size: 0.875rem;
-            border: 1px solid rgba(0,0,0,0.2);
-            background-color: white;
-            color: black;
-            outline: none;
-            width: 100%;
-        }
-        .dark select { 
-            background-color: #18181b; 
-            color: white; 
-            border-color: rgba(255,255,255,0.2);
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-        }
-    </style>
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme');
@@ -71,9 +20,8 @@
             }
         })();
     </script>
-  <script type="module" crossorigin src="./assets/shockTube-BJ-V_JK-.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/main-DVbUp3qd.js">
-  <link rel="stylesheet" crossorigin href="./assets/main-IROynpe1.css">
+  <script type="module" crossorigin src="./assets/main-er4Udof-.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-D6oyqzTK.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col">
 
@@ -122,128 +70,126 @@
     </nav>
 
     <main class="max-w-6xl mx-auto px-6 py-12 flex-grow w-full">
-        <h1 class="text-5xl font-bold mb-4 text-crimson dark:text-green text-center">1D Shock Tube/Riemann Problem</h1>
+        <h1 class="text-5xl font-bold mb-4 text-crimson dark:text-green text-center">1D Shock Tube Calculator</h1>
         
         <div class="max-w-3xl mx-auto text-center mb-10 text-sm leading-relaxed">
-            <p>The default conditions of this web app are set up to match the Sod shock tube validation case at 0.2 seconds. I have put some common-sense limits on the inputs, but I can't guarantee every run will be perfectly smooth. This solver is not extensively verified or validated, so all results should be taken as qualitative. Enjoy!</p>
+            <p>This web app is meant to serve as simple visual calculator for shock tube setups. The default conditions are set up to match the Sod shock tube validation case. You can build custom gases, add multiple material sections, and scrub through the x-t diagram to view state traces. Result correctness is not guaranteed, please contact me with issues and input.</p>
         </div>
 
         <div class="sim-ctrl-card mb-12">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 w-full">
-                
-                <div class="space-y-4 border-r border-black/10 dark:border-white/10 pr-6">
-                    <h3 class="font-bold text-xl text-center text-crimson dark:text-green mb-4 border-b border-black/10 dark:border-white/10 pb-2">Left State</h3>
-                    <div>
-                        <span class="input-label">Boundary</span>
-                        <select id="leftBoundary">
-                            <option value="closed" selected>Closed</option>
-                            <option value="open">Open</option>
-                        </select>
-                    </div>
-                    <div>
-                        <span class="input-label">Density</span>
-                        <input id="leftDensity" type="number" step="0.1" value="1.0" class="number-input">
-                    </div>
-                    <div>
-                        <span class="input-label">Velocity</span>
-                        <input id="leftVelocity" type="number" step="0.1" value="0.0" class="number-input">
-                    </div>
-                    <div>
-                        <span class="input-label">Pressure</span>
-                        <input id="leftPressure" type="number" step="0.1" value="1.0" class="number-input">
-                    </div>
-                    <div>
-                        <span class="input-label">Gamma</span>
-                        <input id="leftGamma" type="number" step="0.1" value="1.4" class="number-input">
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <h3 class="font-bold text-xl text-center text-crimson dark:text-green mb-4 border-b border-black/10 dark:border-white/10 pb-2">Domain Settings</h3>
+            
+            <div class="border-b border-black/10 dark:border-white/10 pb-6 w-full">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     
-                    <div class="flex gap-4 mb-2">
-                        <button id="resetButton" class="sim-btn flex-1">Reset</button>
-                        <button id="playPauseButton" class="sim-btn flex-1">Start</button>
+                    <div class="flex items-center gap-4">
+                        <h3 class="font-bold text-xl text-crimson dark:text-green whitespace-nowrap">Material Sections</h3>
+                        
+                        <select id="unitSystem" onchange="updateAllThermo()" style="min-width: 180px; width: 180px;" class="text-xs font-bold uppercase py-1.5 pl-3 pr-8 bg-slate-100 dark:bg-white/10 border-none rounded cursor-pointer">
+                            <option value="arbitrary" selected>Units: Arbitrary</option>
+                            <option value="mks">MKS (m, kg, s)</option>
+                            <option value="cgs">CGS (cm, g, s)</option>
+                            <option value="fps">FPS (ft, lb, s)</option>
+                        </select>
                     </div>
 
-                    <div class="flex gap-4 mb-6 items-end">
-                        <div class="flex-1">
-                            <span class="input-label">Steps to advance</span>
-                            <input id="manualSteps" type="number" step="1" value="1" class="number-input">
-                        </div>
-                        <button id="stepButton" class="sim-btn flex-1">Step Forward</button>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="col-span-2 flex items-center gap-3 mb-2 bg-slate-100 dark:bg-white/10 p-2 rounded-lg">
-                            <input type="checkbox" id="showTracker" checked class="w-4 h-4 cursor-pointer accent-crimson dark:accent-green">
-                            <label for="showTracker" class="input-label mb-0 cursor-pointer">Show Interface Tracker</label>
-                        </div>
-                        <div class="col-span-2 mb-2">
-                            <span class="input-label">Simulation Speed</span>
-                            <input id="simSpeed" type="range" min="1" max="20" value="2" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-crimson dark:accent-green">
-                        </div>
-                        <div>
-                            <span class="input-label">Domain Left</span>
-                            <input id="domainLeft" type="number" step="0.5" value="0.0" min="-100" max="100" class="number-input">
-                        </div>
-                        <div>
-                            <span class="input-label">Domain Right</span>
-                            <input id="domainRight" type="number" step="0.5" value="1.0" min="-100" max="100" class="number-input">
-                        </div>
-                        <div>
-                            <span class="input-label">Interface Position</span>
-                            <input id="interfacePos" type="number" step="0.1" value="0.5" min="-100" max="100" class="number-input">
-                        </div>
-                        <div>
-                            <span class="input-label">Max Time</span>
-                            <input id="maxTime" type="number" step="0.01" value="0.2" min="0.01" max="10.0" class="number-input">
-                        </div>
-                        <div>
-                            <span class="input-label">Grid Cells</span>
-                            <input id="gridCells" type="number" step="10" value="500" min="10" max="2000" class="number-input">
-                        </div>
-                        <div>
-                            <span class="input-label">CFL Number</span>
-                            <input id="cflNumber" type="number" step="0.05" value="0.5" min="0.01" max="0.95" class="number-input">
-                        </div>
+                    <div class="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
+                        <button onclick="openCustomGasModal()" class="sim-btn flex-1 md:flex-none text-xs bg-slate-200 dark:bg-white/10">
+                            <i class="fa-solid fa-flask mr-1"></i> Define Custom Gas
+                        </button>
+                        <button id="addSectionBtn" onclick="addMaterialSection()" class="sim-btn flex-1 md:flex-none text-xs">
+                            <i class="fa-solid fa-plus mr-1"></i> Add Material Section
+                        </button>
                     </div>
                 </div>
+                
+                <div id="sectionContainer" class="space-y-4"></div>
+            </div>
 
-                <div class="space-y-4 border-l border-black/10 dark:border-white/10 pl-6">
-                    <h3 class="font-bold text-xl text-center text-crimson dark:text-green mb-4 border-b border-black/10 dark:border-white/10 pb-2">Right State</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-black/10 dark:border-white/10 pb-6 w-full">
+                <div>
+                    <span class="input-label">Grid Cells</span>
+                    <input id="gridCells" type="number" step="50" value="500" min="100" max="2000" class="number-input">
+                </div>
+                <div>
+                    <span class="input-label">CFL Number</span>
+                    <input id="cflNumber" type="number" step="0.05" value="0.75" min="0.01" max="0.95" class="number-input">
+                </div>
+                <div>
+                    <span class="input-label">Max Time</span>
+                    <input id="maxTime" type="number" step="0.01" value="0.2" min="0.01" max="100.0" class="number-input">
+                </div>
+                <div>
+                    <span class="input-label">Snapshot Interval</span>
+                    <input id="snapshotInterval" type="number" step="0.0001" value="0.0001" min="0.000001" class="number-input">
+                </div>
+                <div class="col-span-2">
+                    <span class="input-label">Left Boundary</span>
+                    <select id="leftBoundary">
+                        <option value="closed" selected>Closed Wall (Reflective)</option>
+                        <option value="open">Open (Transmissive)</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <span class="input-label">Right Boundary</span>
+                    <select id="rightBoundary">
+                        <option value="closed" selected>Closed Wall (Reflective)</option>
+                        <option value="open">Open (Transmissive)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-6 w-full items-center">
+                <div class="flex-1 w-full">
+                    <button id="runButton" class="sim-btn run-btn-large w-full shadow-lg transform active:scale-95 transition-all">Run Simulation</button>
+                </div>
+
+                <div class="flex-1 grid grid-cols-2 gap-4 w-full">
                     <div>
-                        <span class="input-label">Boundary</span>
-                        <select id="rightBoundary">
-                            <option value="closed" selected>Closed</option>
-                            <option value="open">Open</option>
+                        <span class="input-label">X-T Variable</span>
+                        <select id="xtVariable">
+                            <option value="density" selected>Density</option>
+                            <option value="pressure">Pressure</option>
+                            <option value="temperature">Temperature</option>
                         </select>
                     </div>
                     <div>
-                        <span class="input-label">Density</span>
-                        <input id="rightDensity" type="number" step="0.01" value="0.125" class="number-input">
+                        <span class="input-label">Colormap</span>
+                        <select id="xtColormap">
+                            <option value="rainbow" selected>Rainbow</option>
+                            <option value="plasma">Plasma</option>
+                            <option value="viridis">Viridis</option>
+                            <option value="inferno">Inferno</option>
+                            <option value="magma">Magma</option>
+                        </select>
                     </div>
-                    <div>
-                        <span class="input-label">Velocity</span>
-                        <input id="rightVelocity" type="number" step="0.1" value="0.0" class="number-input">
-                    </div>
-                    <div>
-                        <span class="input-label">Pressure</span>
-                        <input id="rightPressure" type="number" step="0.1" value="0.1" class="number-input">
-                    </div>
-                    <div>
-                        <span class="input-label">Gamma</span>
-                        <input id="rightGamma" type="number" step="0.1" value="1.4" class="number-input">
+                    <div class="col-span-2 flex items-center gap-6 pt-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="showTracker" checked class="w-4 h-4 mr-2 cursor-pointer accent-crimson dark:accent-green">
+                            <label for="showTracker" class="input-label mb-0 cursor-pointer">Show Tracker</label>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="input-label mb-0 mr-2 whitespace-nowrap flex-shrink-0">Line Color:</span>
+                            <select id="trackerColor" class="text-xs py-1 px-2 border-black/20 rounded cursor-pointer">
+                                <option value="black" selected>Black</option>
+                                <option value="white">White</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-
             </div>
+
         </div>
 
         <div class="flex flex-col gap-12 w-full max-w-4xl mx-auto mb-12">
             <div>
                 <h3 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">x-t Diagram</h3>
-                <canvas id="xtCanvas" width="800" height="800" class="w-full bg-white rounded border border-black/10"></canvas>
+                <canvas id="xtCanvas" width="800" height="500" class="w-full bg-white rounded border border-black/10"></canvas>
+                
+                <div class="flex gap-4 justify-center mt-6">
+                    <button id="exportXTBtn" class="sim-btn text-xs"><i class="fa-solid fa-table border-black/10"></i> Export X-T Diagram (CSV)</button>
+                    <button id="exportTracerBtn" class="sim-btn text-xs"><i class="fa-solid fa-route"></i> Export Interface Tracers (CSV)</button>
+                    <button id="exportPngBtn" class="sim-btn text-xs"><i class="fa-solid fa-image mr-2"></i> Download Image (PNG)</button>
+                </div>
             </div>
             <div>
                 <h3 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">Density</h3>
@@ -268,16 +214,13 @@
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
                     <p class="mb-4">
-                        <strong>Just a heads up: in order to see a new run or apply any changes you made to the inputs, you have to hit "Reset" first.</strong>
+                        To get started, just plug in your initial values for the material sections in the panels at the top. You can mess with the density, pressure, velocity, gas constant, and even the boundary conditions to see how different parameters change the shock behavior. I have put some common-sense limits on these inputs to keep the math stable, but this hasn't been exhaustively tested! Weird things may happen if you push the values to the extremes, and I would appreciate any abnormalities being reported to me through my email.
                     </p>
                     <p class="mb-4">
-                        To get started, just plug in your initial values for the left and right states in the panels at the top. You can mess with the density, pressure, velocity, gas constant, and even the boundary conditions to see how different conditions change the shock behavior. I have put some common-sense limits on these inputs to keep the math stable, but this hasn't been exhaustively tested! Weird things may happen if you push the values to the extremes, and I would appreciate any abnormalities being reported to me through my email.
-                    </p>
-                    <p class="mb-4">
-                        Once you have your initial conditions set up, hit "Start" to watch the simulation evolve in real time. If you want to see exactly what is happening at a specific moment, "Step Forward" lets you go frame-by-frame. You can also use the "time-travel" feature by clicking anywhere along the y-axis (Time) of the x-t diagram to jump the snapshots of the line graphs straight to that point in history.
+                        Once you have your initial conditions set up, hit "Run Simulation" to generate the results. You can use the interactive features by hovering over the x-t diagram, or by clicking anywhere along its y-axis (Time), to jump the snapshots of the line graphs straight to that point in history.
                     </p>
                     <p>
-                        If you keep all the inputs at their default settings, a black dotted line will pop up on the graphs once you hit 0.2 seconds. That is the exact analytical solution for the Sod shock tube, which is what the default initial conditions are set to, so you can see how well this numerical scheme actually holds up against the theory!
+                        If you keep all the inputs at their default settings, a black dotted line will pop up on the graphs once you hit 0.2 seconds. That is the exact analytical solution for the Sod shock tube as a small proof of validation.
                     </p>
                 </div>
             </details>
@@ -333,9 +276,9 @@
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
                     
-                    <h4 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">Plain English Overview</h4>
+                    <h4 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">Summary</h4>
                     <p class="mb-4">
-                        To make this work on a computer, we equally divide the tube domain into tiny boxes called cells. Each cell tracks its own density (rho), velocity (u), and pressure (P). We then apply the Euler equations to solve for the fluid dynamics. These equations describe the fundamental laws of physics of how a fluid moves when there is no friction or viscosity.
+                        This simulation resolves the 1D compressible Euler equations using an HLLC (Harten-Lax-van Leer-Contact) approximate Riemann solver to accurately capture shocks, expansion fans, and contact discontinuities. The system is advanced in time using a 3rd-order Strong Stability Preserving Runge-Kutta (SSP-RK3) integration scheme with dynamic CFL-based time stepping, while a mixed-cell interface tracking method advects material properties across the Eulerian grid.
                     </p>
 
                     <h4 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">The Riemann Problem</h4>
@@ -394,6 +337,9 @@
                             <a href="https://link.springer.com/book/10.1007/b79761" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Toro's textbook on Riemann solvers and numerical methods</a>
                         </li>
                         <li>
+                            <a href="https://stillyslalom.github.io/STCalc/" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">A much more fully featured shock tube calculator and x-t diagram maker by Alex Ames</a>
+                        </li>
+                        <li>
                             <a href="https://silver.neep.wisc.edu/~shock/tools/xt.html" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">WiSTL shock tube calculator using a method of characteristics approach, use this for more rigourous results.</a>
                         </li>
                         <li>
@@ -425,11 +371,302 @@
 
     </main>
 
+    <div id="customGasModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider">Define Custom Gas</h2>
+            <div class="space-y-4">
+                <div>
+                    <span class="input-label">Gas Name</span>
+                    <input type="text" id="customGasName" placeholder="e.g. Propane" class="number-input">
+                </div>
+                <div>
+                    <span class="input-label">Gamma</span>
+                    <input type="number" id="customGasGamma" step="0.01" placeholder="e.g. 1.13" class="number-input">
+                </div>
+                <div>
+                    <span class="input-label">MW (g/mol)</span>
+                    <input type="number" id="customGasMW" step="0.01" placeholder="e.g. 44.1" class="number-input">
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button onclick="saveCustomGas()" class="sim-btn flex-1 bg-green-500 text-white dark:bg-green-700">Save</button>
+                    <button onclick="closeCustomGasModal()" class="sim-btn flex-1">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mixtureModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h2 class="text-xl font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider">Build Gas Mixture</h2>
+            <p class="text-xs opacity-70 mb-4">Add constituent gases and define their mole percentages. The calculator will automatically derive the effective Gamma and Molecular Weight.</p>
+            
+            <div id="mixtureRows" class="space-y-3 mb-4 max-h-[300px] overflow-y-auto pr-2">
+                </div>
+            
+            <button onclick="addMixtureRow()" class="sim-btn w-full text-xs mb-4 border border-dashed border-black/20 bg-transparent hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">+ Add Constituent Gas</button>
+            
+            <div class="flex justify-between items-center border-t border-black/10 dark:border-white/10 pt-4 mb-4">
+                <span class="font-bold text-sm">Total: <span id="mixTotalPct">0</span>%</span>
+                <span id="mixErrorMsg" class="text-xs text-red-500 font-bold hidden">Total must equal 100%</span>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="applyMixture()" class="sim-btn flex-1 bg-green-500 text-white dark:bg-green-700">Calculate & Apply</button>
+                <button onclick="closeMixtureModal()" class="sim-btn flex-1">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <footer class="fixed bottom-2 right-6 z-10">
         <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
             © 2026 Ryan Myers. Code under MIT.
         </p>
     </footer>
-
+
+    <script>
+        let sectionCount = 0;
+        let activeMixtureSectionId = null;
+        const container = document.getElementById('sectionContainer');
+        
+        const gasPresets = {
+            ideal: { gamma: 1.4, mw: 28.97, name: "Arbitrary Ideal Gas" },
+            air: { gamma: 1.402, mw: 28.97, name: "Air" },
+            argon: { gamma: 1.67, mw: 39.95, name: "Argon" },
+            co2: { gamma: 1.289, mw: 44.01, name: "Carbon Dioxide" },
+            helium: { gamma: 1.667, mw: 4.00, name: "Helium" },
+            neon: { gamma: 1.667, mw: 20.18, name: "Neon" },
+            nitrogen: { gamma: 1.401, mw: 28.01, name: "Nitrogen" },
+            sf6: { gamma: 1.092, mw: 146.06, name: "Sulfur Hexafluoride" },
+            xenon: { gamma: 1.667, mw: 131.29, name: "Xenon" }
+        };
+
+        // --- Custom Single Gas Logic ---
+        function openCustomGasModal() { document.getElementById('customGasModal').style.display = 'flex'; }
+        function closeCustomGasModal() { document.getElementById('customGasModal').style.display = 'none'; }
+        
+        function saveCustomGas() {
+            const name = document.getElementById('customGasName').value.trim();
+            const gamma = parseFloat(document.getElementById('customGasGamma').value);
+            const mw = parseFloat(document.getElementById('customGasMW').value);
+            if (!name || isNaN(gamma) || isNaN(mw)) { alert("Please fill out all fields."); return; }
+            const id = 'custom_' + name.toLowerCase().replace(/\s+/g, '_');
+            gasPresets[id] = { gamma: gamma, mw: mw, name: "★ " + name };
+            refreshAllDropdowns(); closeCustomGasModal();
+        }
+
+        // --- Mixture Builder Logic ---
+        function openMixtureModal(sectionId) {
+            activeMixtureSectionId = sectionId;
+            document.getElementById('mixtureRows').innerHTML = '';
+            document.getElementById('mixErrorMsg').classList.add('hidden');
+            addMixtureRow('argon', 50);
+            addMixtureRow('helium', 50);
+            updateMixtureTotal();
+            document.getElementById('mixtureModal').style.display = 'flex';
+        }
+
+        function closeMixtureModal() {
+            document.getElementById('mixtureModal').style.display = 'none';
+            // Revert dropdown if they cancel
+            document.getElementById(`secGas-${activeMixtureSectionId}`).value = 'manual';
+        }
+
+        function addMixtureRow(defaultGas = 'air', defaultPct = 0) {
+            const row = document.createElement('div');
+            row.className = 'flex gap-2 items-center mix-row';
+            
+            let opts = '';
+            for (const [key, val] of Object.entries(gasPresets)) {
+                opts += `<option value="${key}" ${key === defaultGas ? 'selected' : ''}>${val.name}</option>`;
+            }
+
+            row.innerHTML = `
+                <select class="mix-gas-select flex-1 text-sm py-2 px-2 border border-black/20 dark:border-white/20 rounded bg-white dark:bg-[#18181b]">${opts}</select>
+                <input type="number" value="${defaultPct}" min="0" max="100" class="mix-pct-input w-20 py-2 px-2 border border-black/20 dark:border-white/20 rounded bg-white dark:bg-[#18181b] text-center" oninput="updateMixtureTotal()">
+                <span class="text-sm font-bold opacity-50">%</span>
+                <button onclick="this.parentElement.remove(); updateMixtureTotal();" class="text-red-500 hover:text-red-700 px-2"><i class="fa-solid fa-trash"></i></button>
+            `;
+            document.getElementById('mixtureRows').appendChild(row);
+        }
+
+        function updateMixtureTotal() {
+            const inputs = document.querySelectorAll('.mix-pct-input');
+            let total = 0;
+            inputs.forEach(inp => total += parseFloat(inp.value) || 0);
+            document.getElementById('mixTotalPct').textContent = total.toFixed(1);
+            if (Math.abs(total - 100) > 0.1) {
+                document.getElementById('mixTotalPct').parentElement.classList.add('text-red-500');
+            } else {
+                document.getElementById('mixTotalPct').parentElement.classList.remove('text-red-500');
+                document.getElementById('mixErrorMsg').classList.add('hidden');
+            }
+        }
+
+        function applyMixture() {
+            const inputs = document.querySelectorAll('.mix-pct-input');
+            const selects = document.querySelectorAll('.mix-gas-select');
+            
+            let total = 0;
+            inputs.forEach(inp => total += parseFloat(inp.value) || 0);
+            if (Math.abs(total - 100) > 0.1) {
+                document.getElementById('mixErrorMsg').classList.remove('hidden');
+                return;
+            }
+
+            let sumMW = 0;
+            let sumCv = 0;
+            let sumCp = 0;
+
+            for (let i = 0; i < inputs.length; i++) {
+                const fraction = parseFloat(inputs[i].value) / 100;
+                if (fraction <= 0) continue;
+
+                const gas = gasPresets[selects[i].value];
+                sumMW += fraction * gas.mw;
+                
+                // Molar specific heats (ignoring Ru since it cancels out in the gamma ratio)
+                const cv = 1 / (gas.gamma - 1);
+                const cp = gas.gamma / (gas.gamma - 1);
+                
+                sumCv += fraction * cv;
+                sumCp += fraction * cp;
+            }
+
+            const mixGamma = sumCp / sumCv;
+
+            document.getElementById(`secGamma-${activeMixtureSectionId}`).value = mixGamma.toFixed(4);
+            document.getElementById(`secMW-${activeMixtureSectionId}`).value = sumMW.toFixed(2);
+            document.getElementById(`secGas-${activeMixtureSectionId}`).value = 'manual'; // Reset to manual so it shows the custom values
+            
+            updateThermo(activeMixtureSectionId);
+            document.getElementById('mixtureModal').style.display = 'none';
+        }
+
+        // --- Core UI Logic ---
+        function refreshAllDropdowns() {
+            let optionsHtml = '';
+            for (const [key, val] of Object.entries(gasPresets)) optionsHtml += `<option value="${key}">${val.name}</option>`;
+            optionsHtml += `<option disabled>──────────</option>`;
+            optionsHtml += `<option value="manual">Manual Input</option>`;
+            optionsHtml += `<option value="mixture">Build Mixture</option>`;
+            
+            document.querySelectorAll('select[id^="secGas-"]').forEach(select => {
+                const currentVal = select.value;
+                select.innerHTML = optionsHtml;
+                if(gasPresets[currentVal] || currentVal === 'manual' || currentVal === 'mixture') select.value = currentVal;
+            });
+        }
+
+        // Returns specific gas constant based on unit system
+        function getGasConstant(system, mw) {
+            if (system === 'arbitrary') return 1.0; 
+            if (system === 'mks') return 8314.46 / mw; // J/(kg K)
+            if (system === 'cgs') return 83144626 / mw; // erg/(g K)
+            if (system === 'fps') return 49719 / mw; // ft lb / (slug R)
+            return 1.0;
+        }
+
+        // Auto-calculates variables based on ideal gas law (P = rho * R * T)
+        function updateThermo(id) {
+            const mode = document.getElementById(`calcMode-${id}`).value;
+            const pInput = document.getElementById(`secPressure-${id}`);
+            const rhoInput = document.getElementById(`secDensity-${id}`);
+            const tInput = document.getElementById(`secTemperature-${id}`);
+            const mwInput = document.getElementById(`secMW-${id}`);
+            
+            if(!pInput || !rhoInput || !tInput || !mwInput) return;
+
+            pInput.disabled = (mode === 'P');
+            rhoInput.disabled = (mode === 'rho');
+            tInput.disabled = (mode === 'T');
+            
+            let P = parseFloat(pInput.value);
+            let rho = parseFloat(rhoInput.value);
+            let T = parseFloat(tInput.value);
+            let mw = parseFloat(mwInput.value) || 28.97;
+            
+            const sys = document.getElementById('unitSystem').value;
+            let Rspec = getGasConstant(sys, mw);
+
+            if (mode === 'P' && !isNaN(rho) && !isNaN(T)) {
+                pInput.value = (rho * Rspec * T).toFixed(4);
+            } else if (mode === 'rho' && !isNaN(P) && !isNaN(T)) {
+                rhoInput.value = (P / (Rspec * T)).toFixed(4);
+            } else if (mode === 'T' && !isNaN(P) && !isNaN(rho)) {
+                tInput.value = (P / (rho * Rspec)).toFixed(4);
+            }
+        }
+
+        function updateAllThermo() {
+            for(let i=0; i<sectionCount; i++) {
+                if(document.getElementById(`calcMode-${i}`)) updateThermo(i);
+            }
+        }
+
+        function addMaterialSection(defaultLength = 0.5, defaultPres = 1.0, defaultDens = 1.0, defaultTemp = 1.0) {
+            const id = sectionCount++;
+            const div = document.createElement('div');
+            div.className = 'slab-container';
+            div.id = `section-${id}`;
+            
+            let gasOptionsHtml = '';
+            for (const [key, val] of Object.entries(gasPresets)) gasOptionsHtml += `<option value="${key}">${val.name}</option>`;
+            gasOptionsHtml += `<option disabled>──────────</option>`;
+            gasOptionsHtml += `<option value="manual">Manual Input</option>`;
+            gasOptionsHtml += `<option value="mixture">Build Mixture</option>`;
+
+            div.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="slab-delete-btn"><i class="fa-solid fa-xmark"></i></button>
+                
+                <div class="flex items-center justify-start gap-4 mb-3">
+                    <div class="font-bold text-sm uppercase tracking-wider opacity-50">Section ${id + 1}</div>
+                    <select id="calcMode-${id}" onchange="updateThermo(${id})" style="width: 160px;" class="text-xs bg-transparent border border-black/20 dark:border-white/20 rounded px-2 py-1 outline-none font-bold cursor-pointer">
+                        <option value="T" selected>Auto-Calc: Temp</option>
+                        <option value="rho">Auto-Calc: Density</option>
+                        <option value="P">Auto-Calc: Pressure</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div><span class="input-label">Length (m)</span><input type="number" id="secLength-${id}" value="${defaultLength}" class="number-input"></div>
+                    <div><span class="input-label">Gas Type</span><select id="secGas-${id}" onchange="handlePresetChange(${id})">${gasOptionsHtml}</select></div>
+                    <div><span class="input-label">Gamma</span><input type="number" id="secGamma-${id}" value="1.4" class="number-input" oninput="document.getElementById('secGas-${id}').value = 'manual';"></div>
+                    <div><span class="input-label">MW (g/mol)</span><input type="number" id="secMW-${id}" value="28.97" class="number-input" oninput="document.getElementById('secGas-${id}').value = 'manual'; updateThermo(${id});"></div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div><span class="input-label">Pressure</span><input type="number" id="secPressure-${id}" value="${defaultPres}" class="number-input" oninput="updateThermo(${id})"></div>
+                    <div><span class="input-label">Density</span><input type="number" id="secDensity-${id}" value="${defaultDens}" class="number-input" oninput="updateThermo(${id})"></div>
+                    <div><span class="input-label">Temperature</span><input type="number" id="secTemperature-${id}" value="${defaultTemp}" class="number-input" oninput="updateThermo(${id})" disabled></div>
+                    <div><span class="input-label">Velocity</span><input type="number" id="secVelocity-${id}" value="0.0" class="number-input"></div>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function handlePresetChange(id) {
+            const select = document.getElementById(`secGas-${id}`);
+            
+            if (select.value === 'mixture') {
+                openMixtureModal(id);
+                return;
+            } else if (select.value === 'manual') {
+                document.getElementById(`secGamma-${id}`).value = '';
+                document.getElementById(`secMW-${id}`).value = '';
+                return;
+            }
+
+            const preset = gasPresets[select.value];
+            if (preset) {
+                document.getElementById(`secGamma-${id}`).value = preset.gamma;
+                document.getElementById(`secMW-${id}`).value = preset.mw;
+                updateThermo(id);
+            }
+        }
+
+        // Initialize Sod Shock Tube (Arbitrary Units make T = 1.0 and 0.8)
+        addMaterialSection(0.5, 1.0, 1.0, 1.0);
+        addMaterialSection(0.5, 0.1, 0.125, 0.8);
+    </script>
+    
 </body>
 </html>

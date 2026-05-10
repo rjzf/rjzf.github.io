@@ -9,46 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <style>
-        canvas { background-color: #000; max-width: 100%; height: auto; display: block; margin: 0 auto; cursor: crosshair; }
-        .sim-btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; border: none; background-color: #e2e8f0; color: #000; }
-        .sim-btn:hover { background-color: #e2e8f0; }
-        .dark .sim-btn { background-color: #32CD32; color: #000; }
-        .dark .sim-btn:hover { background-color: #32CD32; }
-        .sim-ctrl-card { display: flex; flex-direction: column; gap: 2rem; align-items: center; padding: 2rem; border-radius: 2rem; border: 1px solid rgba(0,0,0,0.05); }
-        .dark .sim-ctrl-card { background-color: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
-        .light .sim-ctrl-card { background-color: #f8fafc; }
-        .slider-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.5rem; display: block; }
-        input[type="range"] { cursor: pointer; width: 100%; }
-        
-        select { 
-            -webkit-appearance: none; 
-               -moz-appearance: none; 
-                    appearance: none;
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.7rem top 50%;
-            background-size: 0.65rem auto;
-            border-radius: 0.25rem; 
-            padding: 0.5rem 2rem 0.5rem 0.5rem; 
-            font-size: 0.875rem;
-            border: 1px solid rgba(0,0,0,0.1);
-            background-color: white;
-            color: black;
-            outline: none;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .dark select { 
-            background-color: #18181b; 
-            color: white; 
-            border-color: rgba(255,255,255,0.1);
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-        }
-
-        pre { white-space: pre-wrap; font-family: inherit; font-size: 0.9em; line-height: 1.6; }
-        .accordion-link { text-decoration: underline; transition: opacity 0.2s; }
-        .accordion-link:hover { opacity: 0.7; }
-    </style>
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme');
@@ -60,9 +20,9 @@
             }
         })();
     </script>
-  <script type="module" crossorigin src="./assets/pipeFlow-C2hbQrk3.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/main-DVbUp3qd.js">
-  <link rel="stylesheet" crossorigin href="./assets/main-IROynpe1.css">
+  <script type="module" crossorigin src="./assets/pipeFlow-CUldG4GX.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/main-er4Udof-.js">
+  <link rel="stylesheet" crossorigin href="./assets/main-D6oyqzTK.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col">
 
@@ -113,7 +73,11 @@
     <main class="max-w-5xl mx-auto px-6 py-12 flex-grow w-full">
         <h1 class="text-5xl font-bold mb-8 text-crimson dark:text-green text-center">Pipe Flow</h1>
 
-        <div class="sim-ctrl-card mb-12">
+        <div class="max-w-3xl mx-auto text-center mb-10 text-sm leading-relaxed">
+            <p>Internal flow dynamics are integral in many engineering applications and this app offers a qualitative look at how these flows develop overtime. This app was built using the lattice Boltzmann method and also includes some interactivity with tracers and different selectable obstacles to modify the flow.</p>
+        </div>
+
+        <div class="sim-ctrl-card items-center mb-12">
             <canvas id="theCanvas" width="750" height="240"> 
                 This application runs only in modern browsers.
             </canvas>
@@ -125,7 +89,7 @@
                         <input id="resetFluidButton" type="button" onclick="initFluid()" value="Reset" class="sim-btn flex-1"> 
                         <input id="startButton" type="button" onclick="startStop()" value="Start" class="sim-btn flex-1">
                     </div>
-                    <div class="text-[10px] font-bold opacity-60 uppercase space-y-2">
+                    <div class="text-[10px] font-bold uppercase space-y-2">
                         <div>
                             Animation speed:
                             <input id="stepsSlider" type="range" min="1" max="40" step="1" value="8" onchange="resetTimer()" class="accent-crimson dark:accent-green mt-1">

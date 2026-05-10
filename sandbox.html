@@ -9,43 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    
-    <style>
-        /* Forces the native browser dropdown options box to match the dark theme */
-        .dark { color-scheme: dark; }
-        
-        .slider-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.5rem; display: block; }
-        input[type="range"] { cursor: pointer; width: 100%; }
-        
-        select { 
-            -webkit-appearance: none; 
-               -moz-appearance: none; 
-                    appearance: none;
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.7rem top 50%;
-            background-size: 0.65rem auto;
-            border-radius: 0.25rem; 
-            padding: 0.5rem 2rem 0.5rem 0.5rem; 
-            font-size: 0.875rem;
-            border: 1px solid rgba(0,0,0,0.1);
-            background-color: white;
-            color: black;
-            outline: none;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .dark select { 
-            background-color: #18181b; 
-            color: white; 
-            border-color: rgba(255,255,255,0.1);
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-        }
-
-        pre { white-space: pre-wrap; font-family: inherit; font-size: 0.9em; line-height: 1.6; }
-        .accordion-link { text-decoration: underline; transition: opacity 0.2s; }
-        .accordion-link:hover { opacity: 0.7; }
-    </style>
-
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme');
@@ -57,8 +20,8 @@
             }
         })();
     </script>
-  <script type="module" crossorigin src="./assets/main-DVbUp3qd.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-IROynpe1.css">
+  <script type="module" crossorigin src="./assets/main-er4Udof-.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-D6oyqzTK.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col">
 
@@ -144,9 +107,9 @@
                         <div class="flex flex-col gap-y-8 mt-6 w-full p-6 md:p-8 bg-slate-50 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5">
                             
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full items-center">
-                                <button id="btn-play-pause" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Play</button>
-                                <button id="btn-reset" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Reset</button>
-                                <button id="btn-step" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Step</button>
+                                <button id="btn-play-pause" class="sim-btn w-full uppercase tracking-widest">Play</button>
+                                <button id="btn-reset" class="sim-btn w-full uppercase tracking-widest">Reset</button>
+                                <button id="btn-step" class="sim-btn w-full uppercase tracking-widest">Step</button>
                                 
                                 <div class="flex items-center justify-center gap-2 w-full h-full py-2.5 bg-transparent border border-transparent rounded-lg">
                                     <label class="text-[10px] font-bold uppercase tracking-widest opacity-60">Step:</label>
@@ -183,7 +146,7 @@
                             </summary>
                             <div class="px-6 py-4 text-sm text-black/80 dark:text-white/80 border-t border-black/5 dark:border-white/5">
                                 <p class="mb-4">
-                                    The logistic map is a simple example of how chaos can form from very simple non-linear equations. While it is famous in physics for providing a qualitative map of the transition from order to chaos, its origins are actually rooted in biology. In the mid-1970s, biologist Robert May popularized this equation as a discrete-time model for animal populations. The variable x represents the population at a given time, scaled between 0 (extinction) and 1 (maximum carrying capacity). The equation x_n+1 = r * x_n * (1 - x_n) works through a simple feedback loop:
+                                    The logistic map is a simple example of how chaos can form from very simple non-linear equations. While it is famous in physics for providing a qualitative map of the transition from order to chaos, its origins are rooted in biology. In the mid-1970s, biologist Robert May popularized this equation as a discrete-time model for animal populations. The variable x represents the population at a given time, scaled between 0 (extinction) and 1 (maximum carrying capacity). The equation x_n+1 = r * x_n * (1 - x_n) works through a simple feedback loop:
                                 </p>
                                 <ul class="list-disc list-inside space-y-2 mb-4 ml-2">
                                     <li>Growth (r * x_n): This represents the birth rate. When the population is small, it grows proportionally to how many individuals are already there.</li>
@@ -268,9 +231,9 @@
                         <div class="flex flex-col gap-y-8 mt-6 w-full p-6 md:p-8 bg-slate-50 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5">
                             
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full items-center border-b border-black/5 dark:border-white/5 pb-8">
-                                <button id="plinko-play-pause" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Play</button>
-                                <button id="plinko-reset" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Reset</button>
-                                <button id="plinko-batch" class="w-full py-2.5 bg-[#e2e8f0] text-black dark:bg-[#32CD32] dark:text-black rounded-lg text-sm font-bold uppercase tracking-widest transition-all shadow-sm hover:bg-slate-300 dark:hover:opacity-80 focus:outline-none">Drop Batch</button>
+                                <button id="plinko-play-pause" class="sim-btn w-full uppercase tracking-widest">Play</button>
+                                <button id="plinko-reset" class="sim-btn w-full uppercase tracking-widest">Reset</button>
+                                <button id="plinko-batch" class="sim-btn w-full uppercase tracking-widest">Drop Batch</button>
                                 
                                 <div class="flex items-center justify-center h-full w-full py-2 bg-transparent border border-black/10 dark:border-white/10 rounded-lg px-2">
                                     <label class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-widest opacity-80 hover:opacity-100 transition-opacity text-center leading-tight">
@@ -284,15 +247,15 @@
                                 <div class="flex flex-col gap-8">
                                     <div class="flex flex-col items-center w-full">
                                         <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
-                                            Ball Count: <input type="number" id="plinko-ball-val" min="1" max="5000" step="1" value="250" class="w-16 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none">
+                                            Ball Count: <input type="number" id="plinko-ball-val" min="1" max="5000" step="1" value="500" class="w-16 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none">
                                         </label>
                                         <input type="range" id="plinko-ball-slider" min="1" max="5000" step="10" value="250" class="w-full accent-crimson dark:accent-green">
                                     </div>
                                     <div class="flex flex-col items-center w-full">
                                         <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
-                                            Levels: <input type="number" id="plinko-level-val" min="4" max="25" step="1" value="11" class="w-10 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none">
+                                            Levels: <input type="number" id="plinko-level-val" min="4" max="50" step="1" value="10" class="w-10 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none">
                                         </label>
-                                        <input type="range" id="plinko-level-slider" min="4" max="25" step="1" value="11" class="w-full accent-crimson dark:accent-green">
+                                        <input type="range" id="plinko-level-slider" min="4" max="50" step="1" value="10" class="w-full accent-crimson dark:accent-green">
                                     </div>
                                 </div>
 
