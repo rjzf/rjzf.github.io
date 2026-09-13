@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sandbox | Ryan J. Myers</title>
+    <title>Instability | Ryan J. Myers</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
@@ -67,6 +67,10 @@
     }
 })();
 </script>
+    <style>
+        /* Use one disclosure marker across browsers. */
+        .instability-notes summary::-webkit-details-marker { display: none; }
+    </style>
   <link rel="stylesheet" crossorigin href="./assets/style-DKSny-RA.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
@@ -113,7 +117,7 @@
             <li><a href="./index.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Home</a></li>
             <li><a href="./about.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">About</a></li>
             <li class="site-nav-group">
-                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Instability</a>
+                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="page">Instability</a>
                 <button class="site-submenu-toggle" type="button" aria-label="Toggle Instability pages" aria-controls="instability-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
                 <ul id="instability-submenu" class="site-submenu">
                     <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
@@ -123,7 +127,7 @@
             <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
             <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
             <li class="site-nav-group">
-                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="page">Sandbox</a>
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Sandbox</a>
                 <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
                 <ul id="sandbox-submenu" class="site-submenu">
                     <li><a class="site-submenu-link" href="./logistic-map.html">Logistic Map</a></li>
@@ -264,21 +268,98 @@
 
     <main id="main-content" tabindex="-1" class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
         <header class="text-center mb-10">
-            <h1 class="text-5xl font-bold mb-6 text-crimson dark:text-green">Sandbox</h1>
-            <p class="text-xl leading-relaxed">This is the place for small apps. Please reach out if you have an interesting idea for this page!</p>
+            <h1 class="text-5xl font-bold mb-6 text-crimson dark:text-green">CFD Instability Examples</h1>
         </header>
         <div class="grid gap-4">
-            <a href="./logistic-map.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
-                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Logistic Map <span aria-hidden="true"></span></h2>
-                <p class="mt-2 opacity-70">Bifurcation theory</p>
+            <a href="./kelvin-helmholtz.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
+                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Kelvin-Helmholtz <span aria-hidden="true"></span></h2>
             </a>
-            <a href="./plinko.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
-                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Plinko <span aria-hidden="true"></span></h2>
-                <p class="mt-2 opacity-70">Central Limit Theorem</p>
+            <a href="./rayleigh-taylor.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
+                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Rayleigh-Taylor <span aria-hidden="true"></span></h2>
             </a>
-            <a href="./black-scholes.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
-                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Black-Scholes-Merton Model <span aria-hidden="true"></span></h2>
-            </a>
+        </div>
+
+        <!-- Replace the placeholder text in each accordion. -->
+        <div class="instability-notes space-y-4 mt-8">
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Methods</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    <p class="mb-6">
+                        These instability browser simulations are meant to showcase how different conditions can affect the development of an instability, both in real life and in simulations. They are not meant to be completely physically correct (do NOT use these simulations as results for anything!). Detailed three-dimensional simulations of these instabilities can require substantial computing resources. These simplified examples make some of the same questions accessible in a browser. Having access to this as a pedagogical tool can be really helpful in explaining what researchers care about and what they need to look for. The rest of this accordion section will be a slightly more technical explanation of what is happening. The code can be found in the website’s source repository. Please let me know if you encounter unexpected behavior or crashes. Enjoy!
+                    </p>
+
+                    <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">
+                        How the calculations work
+                    </h3>
+
+                    <p class="mb-6">
+                        The simulations follow the motion of two materials in a two-dimensional domain using an Eulerian description. Both materials share a velocity field, while the relative amount of each material determines the density throughout the domain. The calculations use dimensionless quantities, allowing changes in density contrast, acceleration, and initial conditions to be compared without choosing a particular physical scale. The domain is divided into a fixed grid of cells or zones. Each cell stores the proportion of each material it contains, while velocities are stored along the cell edges. This arrangement makes it possible to calculate how fluid moves between neighboring cells.
+                        (<a href="https://www.cs.ubc.ca/~rbridson/fluidsimulation/fluids_notes.pdf#page=27" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">Staggered MAC grid</a>)
+                    </p>
+
+                    <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">
+                        Material description
+                    </h3>
+
+                    <p class="mb-6">
+                        The materials begin on opposite sides of a wavy interface, or perturbation. Its shape is set by the number of waves and the amplitude relative to their wavelength. Across the interface, the material fraction changes smoothly over a small distance, which we refer to as a diffuse interface. The width of this transition can affect how the instability develops and how the materials become interleaved. Intermediate colors represent material fractions within a grid cell. The Atwood number describes the density difference between the materials relative to the sum of their densities. The Rayleigh–Taylor simulation begins at rest. With the heavier material above the lighter material, downward acceleration drives the instability. The Kelvin–Helmholtz simulation begins with the upper and lower layers moving in opposite directions. A smooth velocity transition connects the layers, and a small velocity disturbance helps initiate the rolling motion.
+                    </p>
+
+                    <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">
+                        Eulerian flow and methods
+                    </h3>
+
+                    <p class="mb-4">
+                        The solver, the numerical code that advances the simulation, updates the material distribution by calculating how much material enters and leaves each cell. These exchanges depend on the velocity at each cell edge and the nearby material fractions. A monotonized central slope limiter reduces artificial oscillations around steep changes in the material distribution.
+                        (<a href="https://zingale.github.io/comp_astro_tutorial/advection_euler/advection/advection-partIII.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">An illustrated explanation of slope limiting</a>)
+                        In order to move the material distribution forward in time, an explicit two-stage solver is used. The first stage predicts an updated distribution. The second stage advances that prediction again and averages the result with the original distribution.
+                        (<a href="https://gkeyll.readthedocs.io/en/latest/dev/ssp-rk.html#ssp-rk2" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">SSP-RK2 time integration</a>, also described as
+                        <a href="https://en.wikipedia.org/wiki/Heun%27s_method" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">Heun’s method</a>)
+                    </p>
+
+                    <p class="mb-4">
+                        Velocity is transported by tracing backward through the flow to estimate where the fluid came from during the time step. A midpoint estimate is used when tracing this path, and the velocity is interpolated from nearby grid values.
+                        (<a href="https://en.wikipedia.org/wiki/Semi-Lagrangian_scheme" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">Semi-Lagrangian advection</a>)
+                        Acceleration then changes the vertical motion according to the local density. When viscosity is enabled, an additional update smooths velocity differences between neighboring cells. Larger viscosity values increase this smoothing.
+                        (<a href="https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">Body forces and viscous diffusion</a>)
+                    </p>
+
+                    <p class="mb-4">
+                        The fluids are treated as incompressible, so the model does not include compression or sound waves. This approximation is useful for studying flows where compressibility effects are small. After updating the velocity, the solver calculates a pressure correction that brings the flow entering and leaving each cell into balance. The local material density is included when calculating this correction.
+                        (<a href="https://en.wikipedia.org/wiki/Projection_method_(fluid_dynamics)" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">Pressure projection</a>)
+                        The pressure calculation uses a sequence of coarse and fine grids. Coarser grids help correct errors that extend across the domain, while finer grids resolve more local differences. The solver repeats this process and checks the remaining imbalance.
+                        (<a href="https://en.wikipedia.org/wiki/Multigrid_method" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">Multigrid methods</a>)
+                    </p>
+
+                    <p class="mb-4">
+                        The calculation time step changes as the simulation develops. Flow speed, grid spacing, acceleration, and viscosity are used to determine how far the solver can safely advance. Faster motion and finer grids generally require smaller time steps.
+                        (<a href="https://en.wikipedia.org/wiki/Courant%E2%80%93Friedrichs%E2%80%93Lewy_condition" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">CFL-based time stepping</a>)
+                        The save frequency sets the spacing between recorded snapshots. The solver takes calculation steps as needed to reach each scheduled output time.
+                    </p>
+
+                    <p class="mb-6">
+                        For both simulations, the left and right edges of the domain are connected, so material leaving one side enters the other. The top and bottom act as stationary walls. Fluid can move along these walls but cannot pass through them.
+                        (<a href="https://en.wikipedia.org/wiki/Boundary_conditions_in_computational_fluid_dynamics" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">Periodic and free-slip boundary conditions</a>)
+                    </p>
+
+                    <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">
+                        Why this runs well in a browser
+                    </h3>
+
+                    <p class="mb-4">
+                        The simplified two-dimensional model keeps the computational work manageable, and WebGL 2 allows the calculations to run on the graphics processor. The fluid fields are stored in textures, allowing many grid cells to be updated in parallel. It is honestly wild to me how well this works.
+                        (<a href="https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green">GPU fluid simulation</a>)
+                        The displayed colors come from the calculated material fractions. Each endpoint color represents one material, while intermediate colors represent cells containing portions of both. Changing the color palette updates the display without changing the simulation.
+                    </p>
+
+                    <p>
+                        Major inspiration for being able to do is <a href="https://fluid-playground.lunar-labs-7954.chatgpt.site/" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green"> credited to this website. </a> While I have wanted to this for a couple years prior to the initial posting of these apps, most of my attempts resulted in bad results. GPU acceleration was a pretty big epiphany for getting this done.
+                    </p>
+                </div>
+            </details>
         </div>
     </main>
 

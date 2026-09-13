@@ -9,68 +9,262 @@
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
+    <script data-site-theme>
+// Apply the saved theme before page content is displayed.
+(() => {
+    const root = document.documentElement;
+    if (root.dataset.themeReady === 'true') return;
 
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        })();
-    </script>
-  <script type="module" crossorigin src="./assets/main-er4Udof-.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-D6oyqzTK.css">
+    let savedTheme;
+    try {
+        savedTheme = localStorage.getItem('theme');
+    } catch {
+        savedTheme = null;
+    }
+
+    const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    let userOverride = savedTheme === 'light' || savedTheme === 'dark';
+    const preferredDark = systemTheme?.matches ?? false;
+    const initialDark = savedTheme === 'dark' || (savedTheme !== 'light' && preferredDark);
+
+    // Announce the action available from the theme button.
+    function updateButton() {
+        const label = root.classList.contains('dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        document.getElementById('theme-toggle')?.setAttribute('aria-label', label);
+    }
+
+    root.classList.toggle('dark', initialDark);
+    root.dataset.themeReady = 'true';
+
+    // Handle clicks independently of header and application startup.
+    document.addEventListener('click', event => {
+        const button = event.target.closest?.('.site-header #theme-toggle');
+        if (!button) return;
+        const dark = !root.classList.contains('dark');
+        userOverride = true;
+        root.classList.toggle('dark', dark);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+        try {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        } catch {
+            // Keep the current page usable when preferences cannot be saved.
+        }
+    });
+
+    // Follow system changes until the user chooses a theme.
+    systemTheme?.addEventListener('change', event => {
+        if (userOverride) return;
+        root.classList.toggle('dark', event.matches);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+    });
+    document.addEventListener('site-header-ready', updateButton);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateButton, { once: true });
+    } else {
+        updateButton();
+    }
+})();
+</script>
+  <script type="module" crossorigin src="./assets/modulepreload-polyfill-Ke7zwH0v.js"></script>
+  <script type="module" crossorigin src="./assets/main-Cf719Hro.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/style-DKSny-RA.css">
 </head>
-<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col">
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page about-page">
 
-    <nav class="sticky top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5">
-        <div class="relative flex items-center justify-between px-6 md:px-12 h-16 w-full">
-            <div class="z-10">
-                <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
-                    Ryan J. Myers
-                </a>
-            </div>
-
-            <div class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
-                <div class="hidden md:flex items-center space-x-1 text-base font-semibold uppercase tracking-widest">
-                    <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Home</a>
-                    <a href="./about.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-crimson dark:text-green transition-all">About</a>
-                    <a href="./pipe-flow.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Pipe Flow</a>
-                    <a href="./shock-tube.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Shock Tube</a>
-                    <a href="./sandbox.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Sandbox</a>
-                    <a href="./visuals.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Visuals</a>
-                    <a href="./other.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Other</a>
-                </div>
-                <button id="menu-toggle" class="md:hidden h-10 w-52 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
-                    <span class="text-2xl">☰</span>
-                </button>
-            </div>
-
-            <div class="z-10">
-                <button id="theme-toggle" class="group h-10 w-10 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all focus:outline-none">
-                    <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]">💡</span>
-                    <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity">💡</span>
-                </button>
-            </div>
+    <style>
+    /* Keep desktop arrows out of view until keyboard focus needs them. */
+    @media (min-width: 80rem) {
+        .site-header .site-nav-group > .site-nav-link { padding-right: .75rem; }
+        .site-header .site-submenu-toggle:not(:focus-visible) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+</style>
+<nav class="site-header top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5" data-position="sticky" aria-label="Primary navigation">
+    <a href="#main-content" class="site-skip-link">Skip to content</a>
+    <div class="site-header-bar">
+        <div class="site-brand">
+            <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
+                Ryan J. Myers
+            </a>
         </div>
 
-        <div id="mobile-menu" class="hidden md:hidden w-full bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
-            <div class="px-6 py-12 flex flex-col items-center justify-center space-y-8 text-2xl font-bold uppercase tracking-[0.3em] text-black dark:text-white">
-                <a href="./index.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Home</a>
-                <a href="./about.html" class="text-crimson dark:text-green hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">About</a>
-                <a href="./pipe-flow.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Pipe Flow</a>
-                <a href="./shock-tube.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Shock Tube</a>
-                <a href="./sandbox.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Sandbox</a>
-                <a href="./visuals.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Visuals</a>
-                <a href="./other.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Other</a>
-            </div>
+        <div class="site-menu-control">
+            <button id="menu-toggle" type="button" aria-label="Open navigation" aria-controls="mobile-menu" aria-expanded="false" class="h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all" hidden>
+                <span class="text-2xl" aria-hidden="true">☰</span>
+            </button>
         </div>
-    </nav>
 
-    <main class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
+        <div class="site-theme-control">
+            <button id="theme-toggle" type="button" aria-label="Switch color theme" class="group h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
+                <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]" aria-hidden="true">💡</span>
+                <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity" aria-hidden="true">💡</span>
+            </button>
+        </div>
+        <!-- Edit this list to update navigation on every page. -->
+        <ul id="mobile-menu" class="site-nav-links bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
+            <li><a href="./index.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Home</a></li>
+            <li><a href="./about.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="page">About</a></li>
+            <li class="site-nav-group">
+                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Instability</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Instability pages" aria-controls="instability-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="instability-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
+                    <li><a class="site-submenu-link" href="./rayleigh-taylor.html">Rayleigh-Taylor</a></li>
+                </ul>
+            </li>
+            <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
+            <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
+            <li class="site-nav-group">
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Sandbox</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="sandbox-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./logistic-map.html">Logistic Map</a></li>
+                    <li><a class="site-submenu-link" href="./plinko.html">Plinko</a></li>
+                    <li><a class="site-submenu-link" href="./black-scholes.html">Black-Scholes-Merton Model</a></li>
+                </ul>
+            </li>
+            <li><a href="./other.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Other</a></li>
+        </ul>
+    </div>
+</nav>
+<script data-site-header>
+// Connect navigation without waiting for any application modules.
+(() => {
+    const header = document.querySelector('.site-header');
+    const button = header?.querySelector('#menu-toggle');
+    const links = header?.querySelector('#mobile-menu');
+    if (!button || !links || header.dataset.menuReady === 'true') return;
+
+    // Keep footer years current without changing their appearance.
+    function updateFooterYear() {
+        const year = String(new Date().getFullYear());
+        document.querySelectorAll('[data-current-year]').forEach(element => {
+            element.textContent = year;
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateFooterYear, { once: true });
+    else updateFooterYear();
+    window.addEventListener('pageshow', updateFooterYear);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) updateFooterYear();
+    });
+
+    const desktop = window.matchMedia('(min-width: 80rem)');
+
+    const groups = [...header.querySelectorAll('.site-nav-group')];
+
+    // Show one submenu and keep its disclosure state in sync.
+    function setSubmenu(group, expanded) {
+        group.querySelector('.site-submenu').hidden = !expanded;
+        group.querySelector('.site-submenu-toggle').setAttribute('aria-expanded', String(expanded));
+    }
+
+    function closeSubmenus(except) {
+        groups.forEach(group => {
+            if (group !== except) setSubmenu(group, false);
+        });
+    }
+
+    groups.forEach(group => {
+        const toggle = group.querySelector('.site-submenu-toggle');
+        const submenu = group.querySelector('.site-submenu');
+        const open = () => {
+            closeSubmenus(group);
+            setSubmenu(group, true);
+        };
+        toggle.addEventListener('click', () => {
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            closeSubmenus();
+            setSubmenu(group, !expanded);
+        });
+        group.addEventListener('pointerenter', event => {
+            if (desktop.matches && event.pointerType === 'mouse') open();
+        });
+        group.addEventListener('pointerleave', event => {
+            if (event.pointerType === 'mouse' && !group.contains(document.activeElement)) setSubmenu(group, false);
+        });
+        group.addEventListener('focusout', event => {
+            if (!group.contains(event.relatedTarget)) setSubmenu(group, false);
+        });
+        group.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' && !submenu.contains(event.target)) {
+                event.preventDefault();
+                open();
+                submenu.querySelector('a').focus();
+            }
+            if (event.key === 'Escape' && !submenu.hidden) {
+                event.preventDefault();
+                event.stopPropagation();
+                setSubmenu(group, false);
+                toggle.focus();
+            }
+        });
+        setSubmenu(group, false);
+        toggle.hidden = false;
+    });
+
+    document.addEventListener('click', event => {
+        if (!groups.some(group => group.contains(event.target))) closeSubmenus();
+    });
+
+    // Keep visibility and the button's announced state together.
+    function setExpanded(expanded) {
+        if (!expanded) closeSubmenus();
+        header.dataset.menuOpen = String(expanded);
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', expanded ? 'Close navigation' : 'Open navigation');
+    }
+
+    button.addEventListener('click', () => {
+        setExpanded(button.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // Close navigation before following its destination.
+    links.addEventListener('click', event => {
+        if (event.target.closest('a')) setExpanded(false);
+    });
+
+    // Return focus to the menu button when Escape closes the list.
+    header.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+        event.preventDefault();
+        setExpanded(false);
+        button.focus();
+    });
+
+    // Keep focus out of links that become collapsed after resizing.
+    desktop.addEventListener('change', () => {
+        if (!desktop.matches && links.contains(document.activeElement)) button.focus();
+        else groups.forEach(group => {
+            if (group.querySelector('.site-submenu').contains(document.activeElement)) group.querySelector('.site-submenu-toggle').focus();
+        });
+        setExpanded(false);
+    });
+
+    // Move keyboard focus as well as the scroll position past navigation.
+    header.querySelector('.site-skip-link')?.addEventListener('click', () => {
+        setExpanded(false);
+        document.getElementById('main-content')?.focus({ preventScroll: true });
+    });
+
+    setExpanded(false);
+    header.dataset.menuReady = 'true';
+    button.hidden = false;
+    document.dispatchEvent(new Event('site-header-ready'));
+})();
+</script>
+
+    <main id="main-content" tabindex="-1" class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
         
         <section class="flex flex-col md:flex-row items-center md:items-start gap-12 mb-20">
             <div class="w-48 h-48 md:w-56 md:h-56 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden flex-shrink-0 shadow-inner border border-black/5 dark:border-white/5">
@@ -89,7 +283,7 @@
                     <span>/</span>
                     <a href="https://orcid.org/0009-0006-3061-4056" target="_blank" class="hover:text-crimson dark:hover:text-green transition">ORCID</a>
                     <span>/</span>
-                    <a href="./RyanJMyersCV.pdf" download="RyanJMyersCV.pdf" class="hover:text-crimson dark:hover:text-green transition">CV (pdf)</a>
+                    <a href="./RyanMyersCV.pdf" download="RyanMyersCV.pdf" class="hover:text-crimson dark:hover:text-green transition">CV (pdf)</a>
                 </div>
             </div>
         </section>
@@ -106,8 +300,8 @@
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">Research Interests</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Research Interests</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-black dark:text-white space-y-10">
@@ -127,7 +321,7 @@
                     </ul>
 
                     <div class="pt-8 border-t border-black/5 dark:border-white/5">
-                        <h4 class="font-bold text-xl mb-4 text-crimson dark:text-green">Physics Web Applications</h4>
+                        <h3 class="font-bold text-xl mb-4 text-crimson dark:text-green">Physics Web Applications</h3>
                         <p class="opacity-70 leading-relaxed max-w-3xl">
                             You might notice I have some apps here that show relatively simple phenomena in fluid mechanics. I personally find it helpful to have a qualitative example to visualize the effects of, say, an equation. Being a visual learner, I've found it a bit rough in more abstract classes where equations usually come first and examples are often an afterthought. I would love to keep making these as pedagogical tools in the future.
                         </p>
@@ -137,8 +331,8 @@
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">Education</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Education</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 space-y-8 border-t border-black/5 dark:border-white/5 text-black dark:text-white">
                     <div>
@@ -166,8 +360,8 @@
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">Experience</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Experience</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 space-y-8 border-t border-black/5 dark:border-white/5 text-black dark:text-white">
                     <div>
@@ -195,12 +389,12 @@
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">Publications & Presentations</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Publications & Presentations</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 space-y-12 text-black dark:text-white">
                     <div>
-                        <h4 class="text-xs font-bold uppercase tracking-[0.2em] opacity-40 mb-6">Peer-Reviewed Journal Publications</h4>
+                        <h3 class="text-xs font-bold uppercase tracking-[0.2em] opacity-40 mb-6">Peer-Reviewed Journal Publications</h3>
                         <ul class="space-y-8 text-base leading-relaxed">
                             <li>1. <span class="font-bold">Myers, R. J.</span>, Ouellet, F., Regele, J. D., and McFarland, J. A., "A stress-based fracture model for reacting metal ejecta," <span class="italic">Journal of Applied Physics</span>, Volume 139, Issue 17, 2026, 174903. <a href="https://doi.org/10.1063/5.0315395" target="_blank" class="text-crimson dark:text-green underline underline-offset-4 ml-1">DOI</a></li>
                             <li>2. Zargarnezhad, H., <span class="font-bold">Myers, R. J.</span>, and McFarland, J. A., "Particle size effects in multiphase Rayleigh–Taylor instability," <span class="italic">Physics of Fluids</span>, Volume 37, Issue 4, 2025, 043302. <a href="https://doi.org/10.1063/5.0257904" target="_blank" class="text-crimson dark:text-green underline underline-offset-4 ml-1">DOI</a></li>
@@ -208,7 +402,7 @@
                         </ul>
                     </div>
                     <div>
-                        <h4 class="text-xs font-bold uppercase tracking-[0.2em] opacity-40 mb-6">Selected Presentations</h4>
+                        <h3 class="text-xs font-bold uppercase tracking-[0.2em] opacity-40 mb-6">Selected Presentations</h3>
                         <ul class="space-y-8 text-base leading-relaxed opacity-90">
                             <li><span class="font-bold">Myers, R. J.</span> et al., "Secondary Breakup of Reactive Metal Ejecta Particles," presented at the JCRNS Workshop, College Station, TX, Dec 2025.</li>
                             <li><span class="font-bold">Myers, R. J.</span> et al., "Stress Analysis of a Reacting Hydride Ejecta Particle," presented at the JCRNS Workshop, College Station, TX, Dec 2024.</li>
@@ -223,20 +417,20 @@
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">Research Projects</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Research Projects</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 space-y-8 text-black dark:text-white">
                     <div>
-                        <h4 class="font-bold text-lg mb-2 text-crimson dark:text-green">Multi-Layered Richtmyer-Meshkov Instabilities</h4>
+                        <h3 class="font-bold text-lg mb-2 text-crimson dark:text-green">Multi-Layered Richtmyer-Meshkov Instabilities</h3>
                         <p class="opacity-70 leading-relaxed">Investigating a historically overlooked variable, this research examines how surface finish dictates the formation and subsequent dynamics of reactive metal ejecta. By focusing on the initiation and growth rates of the Richtmyer-Meshkov instability, the work identifies how initial surface morphology influences secondary particle production. This effort implements simulations across a broad range of scenarios to establish a robust framework capable of predicting these effects in practical applications. Ultimately, this framework establishes a definitive connection between initial surface conditions and the macroscopic production of reactive metal particles in extreme environments.</p>
                     </div>
                     <div>
-                        <h4 class="font-bold text-lg mb-2 text-crimson dark:text-green">Stress-Based Fracture Models for Reactive Ejecta</h4>
+                        <h3 class="font-bold text-lg mb-2 text-crimson dark:text-green">Stress-Based Fracture Models for Reactive Ejecta</h3>
                         <p class="opacity-70 leading-relaxed">A major predictive advancement in the field, this work implements a theoretical stress evolution model capable of analyzing millions of particles in large-scale ejecta simulations. By accounting for the size and temperature dependent dynamics of the hydride shell, which were often overlooked in prior research, the model enables a more physically grounded representation of reactive ejecta. The framework performs fracture analysis for Lagrangian point particles within an Arbitrary Lagrangian-Eulerian hydrocode where experimental conditions are replicated for validation. Replicating these conditions bolsters the model's reliability for predicting fracture behavior across vast populations of reactive particles.</p>
                     </div>
                     <div>
-                        <h4 class="font-bold text-lg mb-2 text-crimson dark:text-green">Resolved Hydriding Particle Simulations</h4>
+                        <h3 class="font-bold text-lg mb-2 text-crimson dark:text-green">Resolved Hydriding Particle Simulations</h3>
                         <p class="opacity-70 leading-relaxed">Utilizing mesh-resolved simulations, this research examines the interaction between chemical reactions and physical breakup in reactive metal ejecta. In experimental settings, these particles evolve violently with the formation of a solid hydride shell. Because the minute scale of the particles makes direct measurement of fracture and breakup difficult, computational simulations are employed to characterize their evolution. The work centers on extensive code development and implementation within an Arbitrary Lagrangian-Eulerian hydrocode to bridge these complex physical processes. By integrating material modeling and reaction product dynamics, the effort attempts to clarify how product shell growth directly influences the mechanical integrity and fragmentation of individual particles.</p>
                     </div>
                 </div>
@@ -244,36 +438,36 @@
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">Personal Interests</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Personal Interests</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 space-y-12 text-black dark:text-white">
 
                     <div>
-                        <h4 class="font-bold text-xl mb-6 text-crimson dark:text-green">Hobbies and Pastimes</h4>
+                        <h3 class="font-bold text-xl mb-6 text-crimson dark:text-green">Hobbies and Pastimes</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             <div>
-                                <h5 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Hobbies</h5>
+                                <h4 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Hobbies</h4>
                                 <p class="text-sm opacity-80">Cooking, Homelabbing, Collecting Sneakers, Game Emulation, Single Board Computing, Computer Hardware Tinkering, and everything else listed here</p>
                             </div>
                             <div>
-                                <h5 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Sports Teams</h5>
+                                <h4 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Sports Teams</h4>
                                 <p class="text-sm opacity-80">Oklahoma Sooners (BOOMER!), Moore Lions, Texas A&M Aggies, OKC Thunder, San Francisco Giants, San Francisco 49ers, San Jose Sharks</p>
                             </div>
                             <div>
-                                <h5 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Books</h5>
+                                <h4 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Books</h4>
                                 <p class="text-sm opacity-80">Slaughterhouse-Five, The Sirens of Titan, The Lord of the Rings, A Song of Ice and Fire, For Whom the Bell Tolls, Catch-22, Gravity's Rainbow, Currently reading: White Noise by Don DeLillo</p>
                             </div>
                             <div>
-                                <h5 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Movies and Shows</h5>
+                                <h4 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Movies and Shows</h4>
                                 <p class="text-sm opacity-80">Memories of Murder, The Good, The Bad, and The Ugly, Anatomy of a Murder, It's a Wonderful Life, High and Low, Moneyball, The Nice Guys, The Shawshank Redemption, The Leftovers, Seinfeld, The Wire, Mr. Robot, Slow Horses</p>
                             </div>
                             <div>
-                                <h5 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Games</h5>
+                                <h4 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Games</h4>
                                 <p class="text-sm opacity-80">Sekiro: Shadows Die Twice, The Assassin's Creed Series, The Persona/SMT Series, NBA 2K, Mount & Blade, Ratchet & Clank, Balatro, Star Wars Battlefront, Red Dead Redemption, Halo, MMOs in general</p>
                             </div>
                             <div>
-                                <h5 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Music</h5>
+                                <h4 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Music</h4>
                                 <p class="text-sm opacity-80">Led Zeppelin, Steely Dan, Miles Davis, Herbie Hancock, UGK, Outkast, Turnstile, Freddie Gibbs, Nirvana, Kendrick Lamar, Tom Petty & the Heartbreakers, Green Day, Pixies, Weezer, The Clash, Wavves, Vince Staples</p>
                             </div>
                         </div>
@@ -283,12 +477,11 @@
         </div>
     </main>
 
-    <footer class="fixed bottom-2 right-6 z-10">
+    <footer class="fixed bottom-2 right-6 z-10 site-footer">
         <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
-            © 2026 Ryan Myers. Code under MIT.
+            © <span data-current-year>2026</span> Ryan Myers. Code under MIT.
         </p>
     </footer>
-
 
 </body>
 </html>

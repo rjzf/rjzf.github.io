@@ -1,7 +1,11 @@
+import { sizePlot, plotWidth, observePlot, bindPair } from './view-utils.js';
+
 export function initBlackScholes() {
     const canvas = document.getElementById('bsCanvas');
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const plotHeight = width => width < 620 ? 510 : Math.min(560, Math.max(480, Math.round(width * 0.55)));
+    const ctx = sizePlot(canvas, plotWidth(canvas), plotHeight(plotWidth(canvas)));
+    let lastDraw = null, drawFrame = null;
 
     const sInput = document.getElementById('bs-s-val'), sSlider = document.getElementById('bs-s-slider');
     const kInput = document.getElementById('bs-k-val'), kSlider = document.getElementById('bs-k-slider');
@@ -12,7 +16,6 @@ export function initBlackScholes() {
     const priceDisplay = document.getElementById('bs-price-display');
 
     const r = 0.05; 
-    const padding = 60;
     let currentGreeks = {};
 
     // Standard Normal PDF
@@ -28,6 +31,7 @@ export function initBlackScholes() {
     }
 
     function calculate() {
+        if ([sInput, kInput, volInput, tInput, costInput].some(input => !input.checkValidity() || !Number.isFinite(input.valueAsNumber))) return;
         const S = parseFloat(sInput.value);
         const K = parseFloat(kInput.value);
         const sigma = parseFloat(volInput.value) / 100.0;
@@ -57,84 +61,107 @@ export function initBlackScholes() {
         // Update HTML Profit Display
         const prefix = profit >= 0 ? "+" : "-";
         priceDisplay.textContent = `${prefix}$${Math.abs(profit).toFixed(2)}`;
-        priceDisplay.style.color = profit >= 0 ? '#32CD32' : '#f23';
+        priceDisplay.dataset.positive = String(profit >= 0);
+        clearTimeout(announcementTimer);
+        announcementTimer = setTimeout(() => { announcement.textContent = 'Expected Profit/Loss: ' + priceDisplay.textContent; }, 300);
 
-        draw(S, K, sigma, T, isCall);
+        const args = [S, K, sigma, T, isCall];
+        if (!lastDraw) draw(...args);
+        else {
+            lastDraw = args;
+            if (drawFrame === null) drawFrame = requestAnimationFrame(() => {
+                drawFrame = null;
+                draw(...lastDraw);
+            });
+        }
     }
 
     function draw(currentS, K, sigma, T, isCall) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const chartW = canvas.width - padding * 2, chartH = canvas.height - padding * 2;
-        const maxPrice = 120, maxStock = 200;
+        lastDraw = [currentS, K, sigma, T, isCall];
+        const width = canvas._logW, height = canvas._logH;
+        const compact = width < 620;
+        const padding = compact ? 44 : 60;
+        const bottom = height - padding - (compact ? 190 : 125);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+        const chartW = width - padding * 2, chartH = bottom - padding;
+        const maxStock = 200;
+        const samples = Math.min(2048, Math.ceil(chartW));
+        const values = new Float64Array(samples + 1);
+        const rootT = Math.sqrt(T), discount = K * Math.exp(-r * T);
+        const spread = sigma * rootT, drift = (r + 0.5 * sigma * sigma) * T;
+        let maximum = Math.max(currentGreeks.cost, currentGreeks.theo, 1);
+        for (let i = 0; i <= samples; i++) {
+            const S = Math.max(0.01, i / samples * maxStock);
+            const d1 = (Math.log(S / K) + drift) / spread, d2 = d1 - spread;
+            values[i] = isCall ? S * CND(d1) - discount * CND(d2) : discount * CND(-d2) - S * CND(-d1);
+            maximum = Math.max(maximum, values[i]);
+        }
+        const rough = maximum * 1.08 / 5, power = 10 ** Math.floor(Math.log10(rough));
+        const tickStep = [1, 2, 2.5, 5, 10].find(n => n * power >= rough) * power;
+        const maxPrice = Math.ceil(maximum * 1.08 / tickStep) * tickStep;
+        const minPrice = -0.03 * maxPrice;
+        const yPixel = value => bottom - (value - minPrice) / (maxPrice - minPrice) * chartH;
+        const xPixel = value => padding + 6 + value / maxStock * (chartW - 12);
 
         // Draw Ticks and Labels
         ctx.fillStyle = '#000000'; ctx.strokeStyle = '#000000';
-        ctx.font = '10px monospace'; ctx.textAlign = 'center';
+        ctx.font = '12px monospace'; ctx.textAlign = 'center';
         
         // X-Axis Ticks
-        for (let i = 0; i <= 10; i++) {
+        for (let i = 0; i <= 10; i += compact ? 2 : 1) {
             const xVal = (maxStock / 10) * i;
-            const px = padding + (xVal / maxStock) * chartW;
-            ctx.beginPath(); ctx.moveTo(px, canvas.height - padding); ctx.lineTo(px, canvas.height - padding + 5); ctx.stroke();
-            ctx.fillText(xVal.toFixed(0), px, canvas.height - padding + 15);
+            const px = xPixel(xVal);
+            ctx.beginPath(); ctx.moveTo(px, bottom); ctx.lineTo(px, bottom + 5); ctx.stroke();
+            ctx.fillText(xVal.toFixed(0), px, bottom + 15);
         }
 
         // Y-Axis Ticks
         ctx.textAlign = 'right';
-        for (let i = 0; i <= 6; i++) {
-            const yVal = (maxPrice / 6) * i;
-            const py = canvas.height - padding - (yVal / maxPrice) * chartH;
+        for (let yVal = 0; yVal <= maxPrice + tickStep * 0.01; yVal += tickStep) {
+            const py = yPixel(yVal);
             ctx.beginPath(); ctx.moveTo(padding - 5, py); ctx.lineTo(padding, py); ctx.stroke();
-            ctx.fillText(yVal.toFixed(0), padding - 10, py + 3);
+            ctx.fillText(String(Number(yVal.toPrecision(5))), padding - 10, py + 3);
         }
 
         // Draw Axes
         ctx.lineWidth = 1.5; ctx.beginPath();
-        ctx.moveTo(padding, padding); ctx.lineTo(padding, canvas.height - padding);
-        ctx.lineTo(canvas.width - padding, canvas.height - padding); ctx.stroke();
+        ctx.moveTo(padding, padding); ctx.lineTo(padding, bottom);
+        ctx.lineTo(width - padding, bottom); ctx.stroke();
 
         // Axis Titles
         ctx.textAlign = 'center';
-        ctx.fillText('Asset Value ($)', padding + chartW / 2, canvas.height - 10);
+        ctx.fillText('Asset Value ($)', padding + chartW / 2, bottom + 40);
         ctx.save(); ctx.translate(15, padding + chartH / 2); ctx.rotate(-Math.PI / 2);
         ctx.fillText('Option Value ($)', 0, 0); ctx.restore();
 
         // Draw Entry Cost Line (Break-even threshold)
-        const costY = canvas.height - padding - (currentGreeks.cost / maxPrice) * chartH;
-        ctx.strokeStyle = '#22c55e';
+        ctx.save(); ctx.beginPath(); ctx.rect(padding, padding, chartW, chartH); ctx.clip();
+        const costY = yPixel(currentGreeks.cost);
+        ctx.strokeStyle = '#15803d';
         ctx.lineWidth = 1;
         ctx.setLineDash([2, 2]);
         ctx.beginPath();
         ctx.moveTo(padding, costY);
-        ctx.lineTo(canvas.width - padding, costY);
+        ctx.lineTo(width - padding, costY);
         ctx.stroke();
         ctx.setLineDash([]);
 
         // Plot Theoretical Curve (Blue)
         ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2.5; ctx.beginPath();
-        for (let x = 0; x <= chartW; x++) {
-            const S = Math.max(0.01, (x / chartW) * maxStock);
-            const d1_x = (Math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * Math.sqrt(T));
-            const d2_x = d1_x - sigma * Math.sqrt(T);
-            const val = isCall ? (S * CND(d1_x) - K * Math.exp(-r * T) * CND(d2_x)) : (K * Math.exp(-r * T) * CND(-d2_x) - S * CND(-d1_x));
-            const sy = canvas.height - padding - (val / maxPrice) * chartH;
-            if (x === 0) ctx.moveTo(padding + x, sy); else ctx.lineTo(padding + x, sy);
+        for (let i = 0; i <= samples; i++) {
+            const px = xPixel(i / samples * maxStock), py = yPixel(values[i]);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         }
         ctx.stroke();
 
-        // Calculate Specific Y-Coordinate for the Marker
-        const d1_spot = (Math.log(currentS / K) + (r + 0.5 * sigma**2) * T) / (sigma * Math.sqrt(T));
-        const d2_spot = d1_spot - sigma * Math.sqrt(T);
-        const spotVal = isCall ? (currentS * CND(d1_spot) - K * Math.exp(-r * T) * CND(d2_spot)) : (K * Math.exp(-r * T) * CND(-d2_spot) - currentS * CND(-d1_spot));
-        
-        const spotX = (currentS / maxStock) * chartW + padding;
-        const spotY = canvas.height - padding - (spotVal / maxPrice) * chartH;
+        ctx.restore();
+        const spotX = xPixel(currentS), spotY = yPixel(currentGreeks.theo);
 
         // Draw Marker for Current Asset Value
         ctx.fillStyle = '#f23'; ctx.beginPath(); ctx.arc(spotX, spotY, 5, 0, Math.PI * 2); ctx.fill();
 
         // Clearer Legend
-        const lx = padding + 20, ly = padding + 20;
+        const lx = compact ? 12 : padding, ly = bottom + 66;
         ctx.textAlign = 'left'; ctx.fillStyle = '#000000';
         
         // Legend: Theoretical Curve
@@ -142,7 +169,7 @@ export function initBlackScholes() {
         ctx.fillText('Theoretical Option Value', lx + 30, ly + 3);
         
         // Legend: Entry Cost Line (Moved up to fill the gap)
-        ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]); ctx.beginPath(); ctx.moveTo(lx, ly + 15); ctx.lineTo(lx + 20, ly + 15); ctx.stroke();
+        ctx.strokeStyle = '#15803d'; ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]); ctx.beginPath(); ctx.moveTo(lx, ly + 15); ctx.lineTo(lx + 20, ly + 15); ctx.stroke();
         ctx.setLineDash([]); ctx.fillText('Break-even', lx + 30, ly + 18);
 
         // Legend: Current Spot Dot (Moved up to fill the gap)
@@ -150,18 +177,13 @@ export function initBlackScholes() {
         ctx.fillStyle = '#000000'; ctx.fillText('Current Asset Price', lx + 30, ly + 33);
 
         // Render Greeks on Canvas
-        const rx = canvas.width - padding - 10, ry = padding + 10;
-        ctx.textAlign = 'right'; ctx.font = 'bold 11px monospace';
+        const rx = width - 12, ry = compact ? bottom + 124 : bottom + 54;
+        ctx.textAlign = 'right'; ctx.font = 'bold 12px monospace';
         ctx.fillText(`Value: $${currentGreeks.theo.toFixed(2)}`, rx, ry);
         ctx.fillText(`Δ Delta: ${currentGreeks.delta.toFixed(3)}`, rx, ry + 20);
         ctx.fillText(`Γ Gamma: ${currentGreeks.gamma.toFixed(4)}`, rx, ry + 35);
         ctx.fillText(`Θ Theta: ${currentGreeks.theta.toFixed(3)}`, rx, ry + 50);
         ctx.fillText(`ν Vega:  ${currentGreeks.vega.toFixed(3)}`, rx, ry + 65);
-    }
-
-    function syncUI(val, targetInput, targetSlider) {
-        targetInput.value = val;
-        if (targetSlider) targetSlider.value = val;
     }
 
     // Input Event Sync
@@ -170,12 +192,27 @@ export function initBlackScholes() {
         [volSlider, volInput], [tSlider, tInput], 
         [costSlider, costInput]
     ];
-    controls.forEach(([s, i]) => {
-        const h = (e) => { syncUI(e.target.value, i, s); calculate(); };
-        s.addEventListener('input', h); i.addEventListener('change', h);
-    });
+    controls.forEach(([slider, input]) => bindPair(input, slider, calculate));
 
     typeSelect.addEventListener('change', calculate);
 
+    const announcement = document.createElement('span');
+    announcement.className = 'sr-only';
+    announcement.dataset.accessibilityAddition = 'status';
+    announcement.setAttribute('role', 'status');
+    priceDisplay.removeAttribute('role');
+    priceDisplay.removeAttribute('aria-live');
+    priceDisplay.after(announcement);
+    let announcementTimer;
+    window.addEventListener('pagehide', () => { clearTimeout(announcementTimer); cancelAnimationFrame(drawFrame); drawFrame = null; });
+    let sizeKey = canvas._logW + ':' + Math.min(2, window.devicePixelRatio || 1);
+    observePlot(canvas, (force) => {
+        const width = plotWidth(canvas);
+        const key = width + ':' + Math.min(2, window.devicePixelRatio || 1);
+        if (!force && key === sizeKey) return;
+        sizeKey = key;
+        sizePlot(canvas, width, plotHeight(width));
+        if (lastDraw) draw(...lastDraw);
+    });
     calculate();
 }

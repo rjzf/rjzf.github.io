@@ -8,72 +8,345 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        })();
-    </script>
-  <script type="module" crossorigin src="./assets/main-er4Udof-.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-D6oyqzTK.css">
+    
+    <script data-site-theme>
+// Apply the saved theme before page content is displayed.
+(() => {
+    const root = document.documentElement;
+    if (root.dataset.themeReady === 'true') return;
+
+    let savedTheme;
+    try {
+        savedTheme = localStorage.getItem('theme');
+    } catch {
+        savedTheme = null;
+    }
+
+    const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    let userOverride = savedTheme === 'light' || savedTheme === 'dark';
+    const preferredDark = systemTheme?.matches ?? false;
+    const initialDark = savedTheme === 'dark' || (savedTheme !== 'light' && preferredDark);
+
+    // Announce the action available from the theme button.
+    function updateButton() {
+        const label = root.classList.contains('dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        document.getElementById('theme-toggle')?.setAttribute('aria-label', label);
+    }
+
+    root.classList.toggle('dark', initialDark);
+    root.dataset.themeReady = 'true';
+
+    // Handle clicks independently of header and application startup.
+    document.addEventListener('click', event => {
+        const button = event.target.closest?.('.site-header #theme-toggle');
+        if (!button) return;
+        const dark = !root.classList.contains('dark');
+        userOverride = true;
+        root.classList.toggle('dark', dark);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+        try {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        } catch {
+            // Keep the current page usable when preferences cannot be saved.
+        }
+    });
+
+    // Follow system changes until the user chooses a theme.
+    systemTheme?.addEventListener('change', event => {
+        if (userOverride) return;
+        root.classList.toggle('dark', event.matches);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+    });
+    document.addEventListener('site-header-ready', updateButton);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateButton, { once: true });
+    } else {
+        updateButton();
+    }
+})();
+</script>
+    <style>
+        :root { --shock-accent: #841617; --shock-track: #e2e8f0; }
+        .dark { --shock-accent: #32CD32; --shock-track: #333; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        [hidden] { display: none !important; }
+        #xtCanvas { touch-action: pan-x pan-y; }
+        .modal-content { max-height: 90vh; overflow-y: auto; }
+        .input-label { display: block; }
+        .shock-run-status {
+            width: -moz-fit-content;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0 auto 1.25rem;
+            padding: 0.6rem 1rem;
+            border: 1px solid #84161726;
+            border-radius: 0.75rem;
+            background: #84161708;
+            font-size: 0.875rem;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+        }
+        .dark .shock-run-status { border-color: #32cd3233; background: #32cd320a; }
+        #runProgress {
+            -moz-appearance: none;
+                 appearance: none;
+            -webkit-appearance: none;
+            height: 8px;
+            border: 0;
+            border-radius: 999px;
+            overflow: hidden;
+            background: var(--shock-track);
+            color: var(--shock-accent);
+            accent-color: var(--shock-accent);
+        }
+        #runProgress::-webkit-progress-bar { background: var(--shock-track); border-radius: 999px; }
+        #runProgress::-webkit-progress-value { background: var(--shock-accent); border-radius: 999px; }
+        #runProgress::-moz-progress-bar { background: var(--shock-accent); border-radius: 999px; }
+        #timeSlider {
+            --scrub-percent: 100%;
+            -moz-appearance: none;
+                 appearance: none;
+            -webkit-appearance: none;
+            height: 28px;
+            background: transparent;
+            accent-color: var(--shock-accent);
+        }
+        #timeSlider::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 999px;
+            background: linear-gradient(to right, var(--shock-accent) var(--scrub-percent), var(--shock-track) var(--scrub-percent));
+        }
+        #timeSlider::-moz-range-track { height: 6px; border-radius: 999px; background: var(--shock-track); }
+        #timeSlider::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--shock-accent); }
+        #timeSlider::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            margin-top: -6px;
+            border: 2px solid white;
+            border-radius: 50%;
+            background: var(--shock-accent);
+            box-shadow: 0 0 0 1px var(--shock-accent);
+        }
+        #timeSlider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border: 2px solid white;
+            border-radius: 50%;
+            background: var(--shock-accent);
+            box-shadow: 0 0 0 1px var(--shock-accent);
+        }
+        #timeSlider:focus-visible { outline: 2px solid var(--shock-accent); outline-offset: 3px; border-radius: 4px; }
+        @media (max-width: 480px) {
+            #unitSystem { min-width: 0 !important; width: 150px !important; }
+            .sim-ctrl-card h3 { white-space: normal; }
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/modulepreload-polyfill-Ke7zwH0v.js"></script>
+  <script type="module" crossorigin src="./assets/main-Cf719Hro.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/style-DKSny-RA.css">
 </head>
-<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col">
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page shock-tube-page">
 
-    <nav class="sticky top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5">
-        <div class="relative flex items-center justify-between px-6 md:px-12 h-16 w-full">
-            <div class="z-10">
-                <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
-                    Ryan J. Myers
-                </a>
-            </div>
-
-            <div class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
-                <div class="hidden md:flex items-center space-x-1 text-base font-semibold uppercase tracking-widest">
-                    <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Home</a>
-                    <a href="./about.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">About</a>
-                    <a href="./pipe-flow.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Pipe Flow</a>
-                    <a href="./shock-tube.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-crimson dark:text-green transition-all">Shock Tube</a>
-                    <a href="./sandbox.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Sandbox</a>
-                    <a href="./visuals.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Visuals</a>
-                    <a href="./other.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Other</a>
-                </div>
-                <button id="menu-toggle" class="md:hidden h-10 w-52 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
-                    <span class="text-2xl">☰</span>
-                </button>
-            </div>
-
-            <div class="z-10">
-                <button id="theme-toggle" class="group h-10 w-10 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all focus:outline-none">
-                    <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]">💡</span>
-                    <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity">💡</span>
-                </button>
-            </div>
+    <style>
+    /* Keep desktop arrows out of view until keyboard focus needs them. */
+    @media (min-width: 80rem) {
+        .site-header .site-nav-group > .site-nav-link { padding-right: .75rem; }
+        .site-header .site-submenu-toggle:not(:focus-visible) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+</style>
+<nav class="site-header top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5" data-position="sticky" aria-label="Primary navigation">
+    <a href="#main-content" class="site-skip-link">Skip to content</a>
+    <div class="site-header-bar">
+        <div class="site-brand">
+            <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
+                Ryan J. Myers
+            </a>
         </div>
 
-        <div id="mobile-menu" class="hidden md:hidden w-full bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
-            <div class="px-6 py-12 flex flex-col items-center justify-center space-y-8 text-2xl font-bold uppercase tracking-[0.3em] text-black dark:text-white">
-                <a href="./index.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Home</a>
-                <a href="./about.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">About</a>
-                <a href="./pipe-flow.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Pipe Flow</a>
-                <a href="./shock-tube.html" class="text-crimson dark:text-green hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Shock Tube</a>
-                <a href="./sandbox.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Sandbox</a>
-                <a href="./visuals.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Visuals</a>
-                <a href="./other.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Other</a>
-            </div>
+        <div class="site-menu-control">
+            <button id="menu-toggle" type="button" aria-label="Open navigation" aria-controls="mobile-menu" aria-expanded="false" class="h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all" hidden>
+                <span class="text-2xl" aria-hidden="true">☰</span>
+            </button>
         </div>
-    </nav>
 
-    <main class="max-w-6xl mx-auto px-6 py-12 flex-grow w-full">
+        <div class="site-theme-control">
+            <button id="theme-toggle" type="button" aria-label="Switch color theme" class="group h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
+                <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]" aria-hidden="true">💡</span>
+                <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity" aria-hidden="true">💡</span>
+            </button>
+        </div>
+        <!-- Edit this list to update navigation on every page. -->
+        <ul id="mobile-menu" class="site-nav-links bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
+            <li><a href="./index.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Home</a></li>
+            <li><a href="./about.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">About</a></li>
+            <li class="site-nav-group">
+                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Instability</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Instability pages" aria-controls="instability-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="instability-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
+                    <li><a class="site-submenu-link" href="./rayleigh-taylor.html">Rayleigh-Taylor</a></li>
+                </ul>
+            </li>
+            <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="page">Shock Tube</a></li>
+            <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
+            <li class="site-nav-group">
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Sandbox</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="sandbox-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./logistic-map.html">Logistic Map</a></li>
+                    <li><a class="site-submenu-link" href="./plinko.html">Plinko</a></li>
+                    <li><a class="site-submenu-link" href="./black-scholes.html">Black-Scholes-Merton Model</a></li>
+                </ul>
+            </li>
+            <li><a href="./other.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Other</a></li>
+        </ul>
+    </div>
+</nav>
+<script data-site-header>
+// Connect navigation without waiting for any application modules.
+(() => {
+    const header = document.querySelector('.site-header');
+    const button = header?.querySelector('#menu-toggle');
+    const links = header?.querySelector('#mobile-menu');
+    if (!button || !links || header.dataset.menuReady === 'true') return;
+
+    // Keep footer years current without changing their appearance.
+    function updateFooterYear() {
+        const year = String(new Date().getFullYear());
+        document.querySelectorAll('[data-current-year]').forEach(element => {
+            element.textContent = year;
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateFooterYear, { once: true });
+    else updateFooterYear();
+    window.addEventListener('pageshow', updateFooterYear);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) updateFooterYear();
+    });
+
+    const desktop = window.matchMedia('(min-width: 80rem)');
+
+    const groups = [...header.querySelectorAll('.site-nav-group')];
+
+    // Show one submenu and keep its disclosure state in sync.
+    function setSubmenu(group, expanded) {
+        group.querySelector('.site-submenu').hidden = !expanded;
+        group.querySelector('.site-submenu-toggle').setAttribute('aria-expanded', String(expanded));
+    }
+
+    function closeSubmenus(except) {
+        groups.forEach(group => {
+            if (group !== except) setSubmenu(group, false);
+        });
+    }
+
+    groups.forEach(group => {
+        const toggle = group.querySelector('.site-submenu-toggle');
+        const submenu = group.querySelector('.site-submenu');
+        const open = () => {
+            closeSubmenus(group);
+            setSubmenu(group, true);
+        };
+        toggle.addEventListener('click', () => {
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            closeSubmenus();
+            setSubmenu(group, !expanded);
+        });
+        group.addEventListener('pointerenter', event => {
+            if (desktop.matches && event.pointerType === 'mouse') open();
+        });
+        group.addEventListener('pointerleave', event => {
+            if (event.pointerType === 'mouse' && !group.contains(document.activeElement)) setSubmenu(group, false);
+        });
+        group.addEventListener('focusout', event => {
+            if (!group.contains(event.relatedTarget)) setSubmenu(group, false);
+        });
+        group.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' && !submenu.contains(event.target)) {
+                event.preventDefault();
+                open();
+                submenu.querySelector('a').focus();
+            }
+            if (event.key === 'Escape' && !submenu.hidden) {
+                event.preventDefault();
+                event.stopPropagation();
+                setSubmenu(group, false);
+                toggle.focus();
+            }
+        });
+        setSubmenu(group, false);
+        toggle.hidden = false;
+    });
+
+    document.addEventListener('click', event => {
+        if (!groups.some(group => group.contains(event.target))) closeSubmenus();
+    });
+
+    // Keep visibility and the button's announced state together.
+    function setExpanded(expanded) {
+        if (!expanded) closeSubmenus();
+        header.dataset.menuOpen = String(expanded);
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', expanded ? 'Close navigation' : 'Open navigation');
+    }
+
+    button.addEventListener('click', () => {
+        setExpanded(button.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // Close navigation before following its destination.
+    links.addEventListener('click', event => {
+        if (event.target.closest('a')) setExpanded(false);
+    });
+
+    // Return focus to the menu button when Escape closes the list.
+    header.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+        event.preventDefault();
+        setExpanded(false);
+        button.focus();
+    });
+
+    // Keep focus out of links that become collapsed after resizing.
+    desktop.addEventListener('change', () => {
+        if (!desktop.matches && links.contains(document.activeElement)) button.focus();
+        else groups.forEach(group => {
+            if (group.querySelector('.site-submenu').contains(document.activeElement)) group.querySelector('.site-submenu-toggle').focus();
+        });
+        setExpanded(false);
+    });
+
+    // Move keyboard focus as well as the scroll position past navigation.
+    header.querySelector('.site-skip-link')?.addEventListener('click', () => {
+        setExpanded(false);
+        document.getElementById('main-content')?.focus({ preventScroll: true });
+    });
+
+    setExpanded(false);
+    header.dataset.menuReady = 'true';
+    button.hidden = false;
+    document.dispatchEvent(new Event('site-header-ready'));
+})();
+</script>
+
+    <main id="main-content" tabindex="-1" class="max-w-6xl mx-auto px-6 py-12 flex-grow w-full">
         <h1 class="text-5xl font-bold mb-4 text-crimson dark:text-green text-center">1D Shock Tube Calculator</h1>
         
         <div class="max-w-3xl mx-auto text-center mb-10 text-sm leading-relaxed">
-            <p>This web app is meant to serve as simple visual calculator for shock tube setups. The default conditions are set up to match the Sod shock tube validation case. You can build custom gases, add multiple material sections, and scrub through the x-t diagram to view state traces. Result correctness is not guaranteed, please contact me with issues and input.</p>
+            <p id="shock-description">This web app is meant to serve as simple visual calculator for shock tube setups. The default conditions are set up to match the Sod shock tube verification case. You can build custom gases, add multiple material sections, and scrub through the x-t diagram to view state traces. The model assumes inviscid, nonreacting gases with constant specific heats. Compare grid resolutions before interpreting fine features.</p>
         </div>
 
         <div class="sim-ctrl-card mb-12">
@@ -81,56 +354,55 @@
             <div class="border-b border-black/10 dark:border-white/10 pb-6 w-full">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     
-                    <div class="flex items-center gap-4">
-                        <h3 class="font-bold text-xl text-crimson dark:text-green whitespace-nowrap">Material Sections</h3>
+                    <div class="flex items-center gap-4 material-heading">
+                        <h2 class="font-bold text-xl text-crimson dark:text-green whitespace-nowrap">Material Sections</h2>
                         
-                        <select id="unitSystem" onchange="updateAllThermo()" style="min-width: 180px; width: 180px;" class="text-xs font-bold uppercase py-1.5 pl-3 pr-8 bg-slate-100 dark:bg-white/10 border-none rounded cursor-pointer">
+                        <select aria-label="Input units" id="unitSystem" onchange="updateAllThermo()" style="min-width: 180px; width: 180px;" class="text-xs font-bold uppercase py-1.5 pl-3 pr-8 bg-slate-100 dark:bg-white/10 border-none rounded cursor-pointer">
                             <option value="arbitrary" selected>Units: Arbitrary</option>
                             <option value="mks">MKS (m, kg, s)</option>
                             <option value="cgs">CGS (cm, g, s)</option>
-                            <option value="fps">FPS (ft, lb, s)</option>
+                            <option value="fps">FPS (ft, slug, s)</option>
                         </select>
                     </div>
 
                     <div class="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
                         <button onclick="openCustomGasModal()" class="sim-btn flex-1 md:flex-none text-xs bg-slate-200 dark:bg-white/10">
-                            <i class="fa-solid fa-flask mr-1"></i> Define Custom Gas
+                            <i class="fa-solid fa-flask mr-1" aria-hidden="true"></i> Define Custom Gas
                         </button>
                         <button id="addSectionBtn" onclick="addMaterialSection()" class="sim-btn flex-1 md:flex-none text-xs">
-                            <i class="fa-solid fa-plus mr-1"></i> Add Material Section
+                            <i class="fa-solid fa-plus mr-1" aria-hidden="true"></i> Add Material Section
                         </button>
                     </div>
                 </div>
-                
                 <div id="sectionContainer" class="space-y-4"></div>
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-black/10 dark:border-white/10 pb-6 w-full">
                 <div>
-                    <span class="input-label">Grid Cells</span>
-                    <input id="gridCells" type="number" step="50" value="500" min="100" max="2000" class="number-input">
+                    <label class="input-label" for="gridCells">Grid Cells</label>
+                    <input id="gridCells" type="number" step="1" value="500" min="100" class="number-input">
                 </div>
                 <div>
-                    <span class="input-label">CFL Number</span>
-                    <input id="cflNumber" type="number" step="0.05" value="0.75" min="0.01" max="0.95" class="number-input">
+                    <label class="input-label" for="cflNumber">CFL Number</label>
+                    <input id="cflNumber" type="number" step="0.01" value="0.75" min="0.01" max="0.95" class="number-input">
                 </div>
                 <div>
-                    <span class="input-label">Max Time</span>
-                    <input id="maxTime" type="number" step="0.01" value="0.2" min="0.01" max="100.0" class="number-input">
+                    <label class="input-label" for="maxTime">Max Time</label>
+                    <input id="maxTime" type="number" step="any" value="0.2" min="0" class="number-input">
                 </div>
                 <div>
-                    <span class="input-label">Snapshot Interval</span>
-                    <input id="snapshotInterval" type="number" step="0.0001" value="0.0001" min="0.000001" class="number-input">
+                    <label class="input-label" for="snapshotInterval">Snapshot Interval</label>
+                    <input id="snapshotInterval" type="number" step="any" value="0.0005" min="0" class="number-input">
                 </div>
                 <div class="col-span-2">
-                    <span class="input-label">Left Boundary</span>
+                    <label class="input-label" for="leftBoundary">Left Boundary</label>
                     <select id="leftBoundary">
                         <option value="closed" selected>Closed Wall (Reflective)</option>
                         <option value="open">Open (Transmissive)</option>
                     </select>
                 </div>
                 <div class="col-span-2">
-                    <span class="input-label">Right Boundary</span>
+                    <label class="input-label" for="rightBoundary">Right Boundary</label>
                     <select id="rightBoundary">
                         <option value="closed" selected>Closed Wall (Reflective)</option>
                         <option value="open">Open (Transmissive)</option>
@@ -138,43 +410,66 @@
                 </div>
             </div>
 
-            <div class="flex flex-col md:flex-row gap-6 w-full items-center">
-                <div class="flex-1 w-full">
-                    <button id="runButton" class="sim-btn run-btn-large w-full shadow-lg transform active:scale-95 transition-all">Run Simulation</button>
-                </div>
-
-                <div class="flex-1 grid grid-cols-2 gap-4 w-full">
-                    <div>
-                        <span class="input-label">X-T Variable</span>
-                        <select id="xtVariable">
-                            <option value="density" selected>Density</option>
-                            <option value="pressure">Pressure</option>
-                            <option value="temperature">Temperature</option>
-                        </select>
-                    </div>
-                    <div>
-                        <span class="input-label">Colormap</span>
-                        <select id="xtColormap">
-                            <option value="rainbow" selected>Rainbow</option>
-                            <option value="plasma">Plasma</option>
-                            <option value="viridis">Viridis</option>
-                            <option value="inferno">Inferno</option>
-                            <option value="magma">Magma</option>
-                        </select>
-                    </div>
-                    <div class="col-span-2 flex items-center gap-6 pt-2">
-                        <div class="flex items-center">
-                            <input type="checkbox" id="showTracker" checked class="w-4 h-4 mr-2 cursor-pointer accent-crimson dark:accent-green">
-                            <label for="showTracker" class="input-label mb-0 cursor-pointer">Show Tracker</label>
+            <div class="shock-controls">
+                <div class="shock-settings">
+                    <div class="shock-resources" data-app-improvement>
+                        <div>
+                            <label class="input-label" for="snapshotPrecision">Snapshot precision</label>
+                            <select id="snapshotPrecision"><option value="32">32-bit</option><option value="64" selected>64-bit</option></select>
                         </div>
-                        <div class="flex items-center">
-                            <span class="input-label mb-0 mr-2 whitespace-nowrap flex-shrink-0">Line Color:</span>
-                            <select id="trackerColor" class="text-xs py-1 px-2 border-black/20 rounded cursor-pointer">
-                                <option value="black" selected>Black</option>
-                                <option value="white">White</option>
+                        <div class="shock-estimates" aria-label="Next run estimates">
+                            <div>Estimated RAM: <span id="memoryEstimate">—</span></div>
+                            <div>Estimated CSV: <span id="csvEstimate">—</span></div>
+                        </div>
+
+                    </div>
+
+                    <div class="shock-plot-controls grid grid-cols-2 gap-4 w-full">
+                        <div>
+                            <label class="input-label" for="xtVariable">X-T Variable</label>
+                            <select id="xtVariable">
+                                <option value="density" selected>Density</option>
+                                <option value="pressure">Pressure</option>
+                                <option value="temperature">Temperature</option>
                             </select>
                         </div>
+                        <div>
+                            <label class="input-label" for="xtColormap">Colormap</label>
+                            <select id="xtColormap">
+                                <option value="rainbow" selected>Rainbow</option>
+                                <option value="plasma">Plasma</option>
+                                <option value="viridis">Viridis</option>
+                                <option value="inferno">Inferno</option>
+                                <option value="magma">Magma</option>
+                            </select>
+                        </div>
+
                     </div>
+                </div>
+
+                <div class="flex items-center gap-6 tracker-controls">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="showTracker" checked class="w-4 h-4 mr-2 cursor-pointer accent-crimson dark:accent-green">
+                        <label for="showTracker" class="input-label mb-0 cursor-pointer">Show Tracker</label>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="input-label mb-0 mr-2 whitespace-nowrap flex-shrink-0">Line Color:</span>
+                        <select aria-label="Tracker color" id="trackerColor" class="text-xs py-1 px-2 border-black/20 rounded cursor-pointer">
+                            <option value="black" selected>Black</option>
+                            <option value="white">White</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="shock-run-controls w-full">
+                    <div id="resourceWarning" class="shock-resource-warning" role="status" data-app-improvement hidden></div>
+                    <label id="memoryAcknowledgement" class="shock-memory-ack" data-app-improvement hidden>
+                        <input id="allowHighMemory" type="checkbox">
+                        <span>I understand this run may slow down or crash this tab.</span>
+                    </label>
+                    <button id="runButton" class="sim-btn run-btn-large w-full shadow-lg transform active:scale-95 transition-all">Run Simulation</button>
+                    <button id="cancelButton" class="sim-btn w-full mt-2" hidden disabled>Cancel Run</button>
+                    <progress id="runProgress" class="w-full mt-2" max="1" value="0" aria-label="Simulation progress" hidden></progress>
                 </div>
             </div>
 
@@ -182,26 +477,31 @@
 
         <div class="flex flex-col gap-12 w-full max-w-4xl mx-auto mb-12">
             <div>
-                <h3 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">x-t Diagram</h3>
-                <canvas id="xtCanvas" width="800" height="500" class="w-full bg-white rounded border border-black/10"></canvas>
+                <h2 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">x-t Diagram</h2>
+                <p id="runStatus" class="shock-run-status" role="status" aria-live="polite">Preparing the default run…</p>
+                <canvas role="img" aria-label="Space-time diagram; use the time slider to select a snapshot" id="xtCanvas" width="800" height="500" class="w-full bg-white rounded border border-black/10" aria-describedby="shock-description"></canvas>
                 
-                <div class="flex gap-4 justify-center mt-6">
-                    <button id="exportXTBtn" class="sim-btn text-xs"><i class="fa-solid fa-table border-black/10"></i> Export X-T Diagram (CSV)</button>
-                    <button id="exportTracerBtn" class="sim-btn text-xs"><i class="fa-solid fa-route"></i> Export Interface Tracers (CSV)</button>
-                    <button id="exportPngBtn" class="sim-btn text-xs"><i class="fa-solid fa-image mr-2"></i> Download Image (PNG)</button>
+                <div class="mt-4">
+                    <label for="timeSlider" class="input-label">Snapshot time: <output id="selectedTime" for="timeSlider">—</output></label>
+                    <input id="timeSlider" type="range" class="w-full" min="0" max="1" step="1" value="0" disabled>
+                </div>
+                <div class="flex flex-wrap gap-4 justify-center mt-6">
+                    <button id="exportXTBtn" class="sim-btn text-xs"><i class="fa-solid fa-table border-black/10" aria-hidden="true"></i> Export X-T Diagram (CSV)</button>
+                    <button id="exportTracerBtn" class="sim-btn text-xs"><i class="fa-solid fa-route" aria-hidden="true"></i> Export Interface Tracers (CSV)</button>
+                    <button id="exportPngBtn" class="sim-btn text-xs"><i class="fa-solid fa-image mr-2" aria-hidden="true"></i> Download Image (PNG)</button>
                 </div>
             </div>
             <div>
-                <h3 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">Density</h3>
-                <canvas id="densityCanvas" width="800" height="200" class="w-full bg-white rounded border border-black/10"></canvas>
+                <h2 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">Density</h2>
+                <canvas role="img" aria-label="Density profile at the selected snapshot" id="densityCanvas" width="800" height="200" class="w-full bg-white rounded border border-black/10" aria-describedby="shock-description"></canvas>
             </div>
             <div>
-                <h3 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">Pressure</h3>
-                <canvas id="pressureCanvas" width="800" height="200" class="w-full bg-white rounded border border-black/10"></canvas>
+                <h2 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">Pressure</h2>
+                <canvas role="img" aria-label="Pressure profile at the selected snapshot" id="pressureCanvas" width="800" height="200" class="w-full bg-white rounded border border-black/10" aria-describedby="shock-description"></canvas>
             </div>
             <div>
-                <h3 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">Velocity</h3>
-                <canvas id="velocityCanvas" width="800" height="200" class="w-full bg-white rounded border border-black/10"></canvas>
+                <h2 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">Velocity</h2>
+                <canvas role="img" aria-label="Velocity profile at the selected snapshot" id="velocityCanvas" width="800" height="200" class="w-full bg-white rounded border border-black/10" aria-describedby="shock-description"></canvas>
             </div>
         </div>
 
@@ -209,26 +509,26 @@
             
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">How to Use</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">How to Use</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
                     <p class="mb-4">
-                        To get started, just plug in your initial values for the material sections in the panels at the top. You can mess with the density, pressure, velocity, gas constant, and even the boundary conditions to see how different parameters change the shock behavior. I have put some common-sense limits on these inputs to keep the math stable, but this hasn't been exhaustively tested! Weird things may happen if you push the values to the extremes, and I would appreciate any abnormalities being reported to me through my email.
+                        Enter a positive length, density, and pressure for each section, with gamma greater than 1 and positive molecular weight. Choose which thermodynamic variable to calculate from the other two. Preset gas properties are constant approximations; they do not model temperature-dependent heat capacities, real-gas effects, or chemical reactions.
                     </p>
                     <p class="mb-4">
-                        Once you have your initial conditions set up, hit "Run Simulation" to generate the results. You can use the interactive features by hovering over the x-t diagram, or by clicking anywhere along its y-axis (Time), to jump the snapshots of the line graphs straight to that point in history.
+                        Select "Run Simulation" to generate the results. Click or tap a time on the x-t diagram, or use the time slider and arrow keys, to select a stored snapshot. The line graphs show density, pressure, and velocity versus position at that time. Hovering reports the nearest snapshot and cell center.
                     </p>
                     <p>
-                        If you keep all the inputs at their default settings, a black dotted line will pop up on the graphs once you hit 0.2 seconds. That is the exact analytical solution for the Sod shock tube as a small proof of validation.
+                        For the default Sod setup, dotted curves show the exact solution until the first wave reaches a boundary. This checks the numerical solution against an idealized reference; it does not validate a laboratory shock tube. CSV files include full-precision values, explicit units, and the completed run settings in their first comment line.
                     </p>
                 </div>
             </details>
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">What is this?</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">What is this?</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
                     
@@ -246,7 +546,7 @@
 
                     <div class="my-8 flex flex-col items-center">
                         <a href="https://doi.org/10.1016/j.oceaneng.2017.12.017" target="_blank">
-                            <img src="shocktubeproblem.jpg" alt="1D Shock Tube Description" class="rounded-lg shadow-md max-w-full">
+                            <img src="shocktubeproblem.jpg" alt="Shock tube before and after diaphragm rupture: a left-moving expansion wave, right-moving contact surface, and right-moving shock." class="rounded-lg shadow-md max-w-full">
                         </a>
                         <p class="mt-2 text-xs opacity-60 text-center italic">A diagram of the shock tube/Riemann problem, the left side would be the driver and right would be the driven. 
                             <a href="https://doi.org/10.1016/j.oceaneng.2017.12.017" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">[Source]</a></p>
@@ -259,7 +559,7 @@
                     </p>
                     <ul class="list-disc list-inside space-y-2 mb-6 ml-4">
                         <li><strong>The Expansion Fan (Rarefaction):</strong> A series of waves moving back into the high-pressure side that smoothly lower the pressure.</li>
-                        <li><strong>The Contact Discontinuity:</strong> The boundary between the original "left" and "right" gases. The velocity is constant across it, but the density and pressure jump at this point.</li>
+                        <li><strong>The Contact Discontinuity:</strong> The boundary between the original "left" and "right" gases. Pressure and velocity are continuous across it; density, temperature, and composition may jump.</li>
                         <li><strong>The Shock Wave:</strong> A sharp, thin front moving into the low-pressure side that causes a sudden spike in density and pressure.</li>
                     </ul>
 
@@ -271,29 +571,29 @@
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">Methods</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Methods</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
                     
-                    <h4 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">Summary</h4>
+                    <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">Summary</h3>
                     <p class="mb-4">
-                        This simulation resolves the 1D compressible Euler equations using an HLLC (Harten-Lax-van Leer-Contact) approximate Riemann solver to accurately capture shocks, expansion fans, and contact discontinuities. The system is advanced in time using a 3rd-order Strong Stability Preserving Runge-Kutta (SSP-RK3) integration scheme with dynamic CFL-based time stepping, while a mixed-cell interface tracking method advects material properties across the Eulerian grid.
+                        This simulation uses first-order finite volumes and an HLLC approximate Riemann solver, with a more diffusive Rusanov fallback for invalid intermediate states. Four-stage, third-order SSP Runge-Kutta integration advances the fluid state, material mass, and volume fractions together. The spatial scheme remains first order; shocks and interfaces broaden across several cells.
                     </p>
 
-                    <h4 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">The Riemann Problem</h4>
+                    <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">The Riemann Problem</h3>
                     <p class="mb-4">
                         At every boundary between two cells, we have what is called a Riemann problem. The solver's job is to calculate the net flux (the flow of mass, momentum, and energy) across the boundary of two cells by assuming a specific wave pattern forms when the cells are at different states.
                     </p>
 
-                    <h4 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">The HLLC Wave Structure</h4>
+                    <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">The HLLC Wave Structure</h3>
                     <p class="mb-4">
                         This app incorporates the <strong>HLLC (Harten-Lax-van Leer-Contact)</strong> method. While older solvers only assumed two waves moving outward, they often "smeared" the results because they ignored the physics happening in the center. HLLC fixes this by tracking three specific waves. Assuming the setup is similar to the Sod shock tube, the three waves are:
                     </p>
                     <ul class="list-disc list-inside space-y-2 mb-4 ml-4">
-                        <li>SL: The equilibration wave moving to the left of the original interface.</li>
-                        <li>SR: The shock wave moving to the right into the unshocked fluid.</li>
-                        <li>SM: The contact discontinuity in the middle which describes the original interface.</li>
+                        <li>SL: The estimated leftmost signal speed.</li>
+                        <li>SR: The estimated rightmost signal speed.</li>
+                        <li>SM: The estimated contact speed between them.</li>
                     </ul>
                     
                     <p class="mb-4">
@@ -301,20 +601,23 @@
                     </p>
 
 
-                    <h4 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">Stability and Visualization</h4>
+                    <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">Stability and Visualization</h3>
                     <p class="mb-4">
-                        To keep the simulation from becoming unstable, we use a safety factor called the CFL Condition. This calculates a speed limit for the time steps. If a wave moves faster than the grid can track, the code will crash. So we keep the CFL number below 1.0 to mitigate this.
+                        The CFL number limits each time step using the local wave speeds. Every stage is checked for finite, positive density and pressure, and failed steps are retried with a smaller step. CFL control alone does not guarantee accuracy or physical validity. Runs stop with an error if the state cannot be resolved, or if the time, step, or storage limits are exceeded.
                     </p>
                     <p>
-                        Finally, we plot everything on an x-t diagram. This lets you see the whole history of the waves at once. Position is on the bottom and time is on the side, so diagonal lines show you exactly how fast the shock and expansion waves are traveling through the tube. You can also see the trace graphs of pressure, density, and velocity over time as well. These help describe the instantaneous state of the domain by acting as a measurement through all the cells.
+                        The x-t diagram shows position horizontally and time vertically. Colors use the nearest stored snapshot; profiles use the actual cell centers. Interface markers follow the interpolated velocity and stop when they leave the tube. In physical units, temperature is a cell number-weighted value; a cell crossing a material interface can contain gases at different temperatures. Open boundaries copy the adjacent state and can reflect some waves; they are not exact nonreflecting boundaries.
+                    </p>
+                    <p class="mt-4">
+                        Material volume fractions set the pressure closure, while conservative partial densities set molecular weight and temperature. No physical mixing or diffusion is modeled. Thin sections retain their initial mass through cell-overlap averaging, but need several cells to resolve their waves. Use shorter runs and finer grids to check whether the result has converged.
                     </p>
                 </div>
             </details>
 
             <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
                 <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
-                    <span class="text-2xl font-bold uppercase tracking-wider">Resources</span>
-                    <span class="text-2xl group-open:rotate-180 transition-transform">↓</span>
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Resources</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
                     <ul class="space-y-3">
@@ -371,22 +674,23 @@
 
     </main>
 
-    <div id="customGasModal" class="modal">
+    <div id="customGasModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="customGasTitle">
         <div class="modal-content">
-            <h2 class="text-xl font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider">Define Custom Gas</h2>
+            <h2 id="customGasTitle" class="text-xl font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider">Define Custom Gas</h2>
             <div class="space-y-4">
                 <div>
-                    <span class="input-label">Gas Name</span>
-                    <input type="text" id="customGasName" placeholder="e.g. Propane" class="number-input">
+                    <label class="input-label" for="customGasName">Gas Name</label>
+                    <input type="text" maxlength="80" id="customGasName" placeholder="e.g. Propane" class="number-input">
                 </div>
                 <div>
-                    <span class="input-label">Gamma</span>
+                    <label class="input-label" for="customGasGamma">Gamma</label>
                     <input type="number" id="customGasGamma" step="0.01" placeholder="e.g. 1.13" class="number-input">
                 </div>
                 <div>
-                    <span class="input-label">MW (g/mol)</span>
+                    <label class="input-label" for="customGasMW">MW (g/mol)</label>
                     <input type="number" id="customGasMW" step="0.01" placeholder="e.g. 44.1" class="number-input">
                 </div>
+                <p id="customGasError" class="text-sm text-red-500" role="alert"></p>
                 <div class="flex gap-4 pt-4">
                     <button onclick="saveCustomGas()" class="sim-btn flex-1 bg-green-500 text-white dark:bg-green-700">Save</button>
                     <button onclick="closeCustomGasModal()" class="sim-btn flex-1">Cancel</button>
@@ -395,19 +699,19 @@
         </div>
     </div>
 
-    <div id="mixtureModal" class="modal">
+    <div id="mixtureModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="mixtureTitle">
         <div class="modal-content" style="max-width: 500px;">
-            <h2 class="text-xl font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider">Build Gas Mixture</h2>
+            <h2 id="mixtureTitle" class="text-xl font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider">Build Gas Mixture</h2>
             <p class="text-xs opacity-70 mb-4">Add constituent gases and define their mole percentages. The calculator will automatically derive the effective Gamma and Molecular Weight.</p>
             
             <div id="mixtureRows" class="space-y-3 mb-4 max-h-[300px] overflow-y-auto pr-2">
                 </div>
             
-            <button onclick="addMixtureRow()" class="sim-btn w-full text-xs mb-4 border border-dashed border-black/20 bg-transparent hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">+ Add Constituent Gas</button>
+            <button id="addMixtureBtn" onclick="addMixtureRow()" class="sim-btn w-full text-xs mb-4 border border-dashed border-black/20 bg-transparent hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5">+ Add Constituent Gas</button>
             
             <div class="flex justify-between items-center border-t border-black/10 dark:border-white/10 pt-4 mb-4">
                 <span class="font-bold text-sm">Total: <span id="mixTotalPct">0</span>%</span>
-                <span id="mixErrorMsg" class="text-xs text-red-500 font-bold hidden">Total must equal 100%</span>
+                <span id="mixErrorMsg" role="alert" class="text-xs text-red-500 font-bold hidden">Total must equal 100%</span>
             </div>
 
             <div class="flex gap-4">
@@ -417,256 +721,12 @@
         </div>
     </div>
 
-    <footer class="fixed bottom-2 right-6 z-10">
+    <footer class="fixed bottom-2 right-6 z-10 site-footer">
         <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
-            © 2026 Ryan Myers. Code under MIT.
+            © <span data-current-year>2026</span> Ryan Myers. Code under MIT.
         </p>
     </footer>
 
-    <script>
-        let sectionCount = 0;
-        let activeMixtureSectionId = null;
-        const container = document.getElementById('sectionContainer');
-        
-        const gasPresets = {
-            ideal: { gamma: 1.4, mw: 28.97, name: "Arbitrary Ideal Gas" },
-            air: { gamma: 1.402, mw: 28.97, name: "Air" },
-            argon: { gamma: 1.67, mw: 39.95, name: "Argon" },
-            co2: { gamma: 1.289, mw: 44.01, name: "Carbon Dioxide" },
-            helium: { gamma: 1.667, mw: 4.00, name: "Helium" },
-            neon: { gamma: 1.667, mw: 20.18, name: "Neon" },
-            nitrogen: { gamma: 1.401, mw: 28.01, name: "Nitrogen" },
-            sf6: { gamma: 1.092, mw: 146.06, name: "Sulfur Hexafluoride" },
-            xenon: { gamma: 1.667, mw: 131.29, name: "Xenon" }
-        };
-
-        // --- Custom Single Gas Logic ---
-        function openCustomGasModal() { document.getElementById('customGasModal').style.display = 'flex'; }
-        function closeCustomGasModal() { document.getElementById('customGasModal').style.display = 'none'; }
-        
-        function saveCustomGas() {
-            const name = document.getElementById('customGasName').value.trim();
-            const gamma = parseFloat(document.getElementById('customGasGamma').value);
-            const mw = parseFloat(document.getElementById('customGasMW').value);
-            if (!name || isNaN(gamma) || isNaN(mw)) { alert("Please fill out all fields."); return; }
-            const id = 'custom_' + name.toLowerCase().replace(/\s+/g, '_');
-            gasPresets[id] = { gamma: gamma, mw: mw, name: "★ " + name };
-            refreshAllDropdowns(); closeCustomGasModal();
-        }
-
-        // --- Mixture Builder Logic ---
-        function openMixtureModal(sectionId) {
-            activeMixtureSectionId = sectionId;
-            document.getElementById('mixtureRows').innerHTML = '';
-            document.getElementById('mixErrorMsg').classList.add('hidden');
-            addMixtureRow('argon', 50);
-            addMixtureRow('helium', 50);
-            updateMixtureTotal();
-            document.getElementById('mixtureModal').style.display = 'flex';
-        }
-
-        function closeMixtureModal() {
-            document.getElementById('mixtureModal').style.display = 'none';
-            // Revert dropdown if they cancel
-            document.getElementById(`secGas-${activeMixtureSectionId}`).value = 'manual';
-        }
-
-        function addMixtureRow(defaultGas = 'air', defaultPct = 0) {
-            const row = document.createElement('div');
-            row.className = 'flex gap-2 items-center mix-row';
-            
-            let opts = '';
-            for (const [key, val] of Object.entries(gasPresets)) {
-                opts += `<option value="${key}" ${key === defaultGas ? 'selected' : ''}>${val.name}</option>`;
-            }
-
-            row.innerHTML = `
-                <select class="mix-gas-select flex-1 text-sm py-2 px-2 border border-black/20 dark:border-white/20 rounded bg-white dark:bg-[#18181b]">${opts}</select>
-                <input type="number" value="${defaultPct}" min="0" max="100" class="mix-pct-input w-20 py-2 px-2 border border-black/20 dark:border-white/20 rounded bg-white dark:bg-[#18181b] text-center" oninput="updateMixtureTotal()">
-                <span class="text-sm font-bold opacity-50">%</span>
-                <button onclick="this.parentElement.remove(); updateMixtureTotal();" class="text-red-500 hover:text-red-700 px-2"><i class="fa-solid fa-trash"></i></button>
-            `;
-            document.getElementById('mixtureRows').appendChild(row);
-        }
-
-        function updateMixtureTotal() {
-            const inputs = document.querySelectorAll('.mix-pct-input');
-            let total = 0;
-            inputs.forEach(inp => total += parseFloat(inp.value) || 0);
-            document.getElementById('mixTotalPct').textContent = total.toFixed(1);
-            if (Math.abs(total - 100) > 0.1) {
-                document.getElementById('mixTotalPct').parentElement.classList.add('text-red-500');
-            } else {
-                document.getElementById('mixTotalPct').parentElement.classList.remove('text-red-500');
-                document.getElementById('mixErrorMsg').classList.add('hidden');
-            }
-        }
-
-        function applyMixture() {
-            const inputs = document.querySelectorAll('.mix-pct-input');
-            const selects = document.querySelectorAll('.mix-gas-select');
-            
-            let total = 0;
-            inputs.forEach(inp => total += parseFloat(inp.value) || 0);
-            if (Math.abs(total - 100) > 0.1) {
-                document.getElementById('mixErrorMsg').classList.remove('hidden');
-                return;
-            }
-
-            let sumMW = 0;
-            let sumCv = 0;
-            let sumCp = 0;
-
-            for (let i = 0; i < inputs.length; i++) {
-                const fraction = parseFloat(inputs[i].value) / 100;
-                if (fraction <= 0) continue;
-
-                const gas = gasPresets[selects[i].value];
-                sumMW += fraction * gas.mw;
-                
-                // Molar specific heats (ignoring Ru since it cancels out in the gamma ratio)
-                const cv = 1 / (gas.gamma - 1);
-                const cp = gas.gamma / (gas.gamma - 1);
-                
-                sumCv += fraction * cv;
-                sumCp += fraction * cp;
-            }
-
-            const mixGamma = sumCp / sumCv;
-
-            document.getElementById(`secGamma-${activeMixtureSectionId}`).value = mixGamma.toFixed(4);
-            document.getElementById(`secMW-${activeMixtureSectionId}`).value = sumMW.toFixed(2);
-            document.getElementById(`secGas-${activeMixtureSectionId}`).value = 'manual'; // Reset to manual so it shows the custom values
-            
-            updateThermo(activeMixtureSectionId);
-            document.getElementById('mixtureModal').style.display = 'none';
-        }
-
-        // --- Core UI Logic ---
-        function refreshAllDropdowns() {
-            let optionsHtml = '';
-            for (const [key, val] of Object.entries(gasPresets)) optionsHtml += `<option value="${key}">${val.name}</option>`;
-            optionsHtml += `<option disabled>──────────</option>`;
-            optionsHtml += `<option value="manual">Manual Input</option>`;
-            optionsHtml += `<option value="mixture">Build Mixture</option>`;
-            
-            document.querySelectorAll('select[id^="secGas-"]').forEach(select => {
-                const currentVal = select.value;
-                select.innerHTML = optionsHtml;
-                if(gasPresets[currentVal] || currentVal === 'manual' || currentVal === 'mixture') select.value = currentVal;
-            });
-        }
-
-        // Returns specific gas constant based on unit system
-        function getGasConstant(system, mw) {
-            if (system === 'arbitrary') return 1.0; 
-            if (system === 'mks') return 8314.46 / mw; // J/(kg K)
-            if (system === 'cgs') return 83144626 / mw; // erg/(g K)
-            if (system === 'fps') return 49719 / mw; // ft lb / (slug R)
-            return 1.0;
-        }
-
-        // Auto-calculates variables based on ideal gas law (P = rho * R * T)
-        function updateThermo(id) {
-            const mode = document.getElementById(`calcMode-${id}`).value;
-            const pInput = document.getElementById(`secPressure-${id}`);
-            const rhoInput = document.getElementById(`secDensity-${id}`);
-            const tInput = document.getElementById(`secTemperature-${id}`);
-            const mwInput = document.getElementById(`secMW-${id}`);
-            
-            if(!pInput || !rhoInput || !tInput || !mwInput) return;
-
-            pInput.disabled = (mode === 'P');
-            rhoInput.disabled = (mode === 'rho');
-            tInput.disabled = (mode === 'T');
-            
-            let P = parseFloat(pInput.value);
-            let rho = parseFloat(rhoInput.value);
-            let T = parseFloat(tInput.value);
-            let mw = parseFloat(mwInput.value) || 28.97;
-            
-            const sys = document.getElementById('unitSystem').value;
-            let Rspec = getGasConstant(sys, mw);
-
-            if (mode === 'P' && !isNaN(rho) && !isNaN(T)) {
-                pInput.value = (rho * Rspec * T).toFixed(4);
-            } else if (mode === 'rho' && !isNaN(P) && !isNaN(T)) {
-                rhoInput.value = (P / (Rspec * T)).toFixed(4);
-            } else if (mode === 'T' && !isNaN(P) && !isNaN(rho)) {
-                tInput.value = (P / (rho * Rspec)).toFixed(4);
-            }
-        }
-
-        function updateAllThermo() {
-            for(let i=0; i<sectionCount; i++) {
-                if(document.getElementById(`calcMode-${i}`)) updateThermo(i);
-            }
-        }
-
-        function addMaterialSection(defaultLength = 0.5, defaultPres = 1.0, defaultDens = 1.0, defaultTemp = 1.0) {
-            const id = sectionCount++;
-            const div = document.createElement('div');
-            div.className = 'slab-container';
-            div.id = `section-${id}`;
-            
-            let gasOptionsHtml = '';
-            for (const [key, val] of Object.entries(gasPresets)) gasOptionsHtml += `<option value="${key}">${val.name}</option>`;
-            gasOptionsHtml += `<option disabled>──────────</option>`;
-            gasOptionsHtml += `<option value="manual">Manual Input</option>`;
-            gasOptionsHtml += `<option value="mixture">Build Mixture</option>`;
-
-            div.innerHTML = `
-                <button onclick="this.parentElement.remove()" class="slab-delete-btn"><i class="fa-solid fa-xmark"></i></button>
-                
-                <div class="flex items-center justify-start gap-4 mb-3">
-                    <div class="font-bold text-sm uppercase tracking-wider opacity-50">Section ${id + 1}</div>
-                    <select id="calcMode-${id}" onchange="updateThermo(${id})" style="width: 160px;" class="text-xs bg-transparent border border-black/20 dark:border-white/20 rounded px-2 py-1 outline-none font-bold cursor-pointer">
-                        <option value="T" selected>Auto-Calc: Temp</option>
-                        <option value="rho">Auto-Calc: Density</option>
-                        <option value="P">Auto-Calc: Pressure</option>
-                    </select>
-                </div>
-
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div><span class="input-label">Length (m)</span><input type="number" id="secLength-${id}" value="${defaultLength}" class="number-input"></div>
-                    <div><span class="input-label">Gas Type</span><select id="secGas-${id}" onchange="handlePresetChange(${id})">${gasOptionsHtml}</select></div>
-                    <div><span class="input-label">Gamma</span><input type="number" id="secGamma-${id}" value="1.4" class="number-input" oninput="document.getElementById('secGas-${id}').value = 'manual';"></div>
-                    <div><span class="input-label">MW (g/mol)</span><input type="number" id="secMW-${id}" value="28.97" class="number-input" oninput="document.getElementById('secGas-${id}').value = 'manual'; updateThermo(${id});"></div>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><span class="input-label">Pressure</span><input type="number" id="secPressure-${id}" value="${defaultPres}" class="number-input" oninput="updateThermo(${id})"></div>
-                    <div><span class="input-label">Density</span><input type="number" id="secDensity-${id}" value="${defaultDens}" class="number-input" oninput="updateThermo(${id})"></div>
-                    <div><span class="input-label">Temperature</span><input type="number" id="secTemperature-${id}" value="${defaultTemp}" class="number-input" oninput="updateThermo(${id})" disabled></div>
-                    <div><span class="input-label">Velocity</span><input type="number" id="secVelocity-${id}" value="0.0" class="number-input"></div>
-                </div>
-            `;
-            container.appendChild(div);
-        }
-
-        function handlePresetChange(id) {
-            const select = document.getElementById(`secGas-${id}`);
-            
-            if (select.value === 'mixture') {
-                openMixtureModal(id);
-                return;
-            } else if (select.value === 'manual') {
-                document.getElementById(`secGamma-${id}`).value = '';
-                document.getElementById(`secMW-${id}`).value = '';
-                return;
-            }
-
-            const preset = gasPresets[select.value];
-            if (preset) {
-                document.getElementById(`secGamma-${id}`).value = preset.gamma;
-                document.getElementById(`secMW-${id}`).value = preset.mw;
-                updateThermo(id);
-            }
-        }
-
-        // Initialize Sod Shock Tube (Arbitrary Units make T = 1.0 and 0.8)
-        addMaterialSection(0.5, 1.0, 1.0, 1.0);
-        addMaterialSection(0.5, 0.1, 0.125, 0.8);
-    </script>
-    
+    
 </body>
 </html>

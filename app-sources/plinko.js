@@ -1,294 +1,251 @@
+import { sizePlot, plotWidth, observePlot, bindPair } from './view-utils.js';
+
 export function initPlinko() {
     const canvas = document.getElementById('plinkoCanvas');
     if (!canvas) return;
+    const boardWidth = 800, boardHeight = 600;
     const ctx = canvas.getContext('2d');
+    const background = document.createElement('canvas');
+    canvas.parentElement.classList.add('plinko-plot');
 
-    // UI References
+    // Read the existing controls.
     const btnPlay = document.getElementById('plinko-play-pause');
     const btnReset = document.getElementById('plinko-reset');
     const btnBatch = document.getElementById('plinko-batch');
     const ballInput = document.getElementById('plinko-ball-val');
     const levelInput = document.getElementById('plinko-level-val');
-    const probInput = document.getElementById('plinko-prob-val'); 
+    const probInput = document.getElementById('plinko-prob-val');
     const speedInput = document.getElementById('plinko-speed-val');
     const overlayCheck = document.getElementById('plinko-overlay');
+    const settings = { balls: Number(ballInput.value), levels: Number(levelInput.value), probability: Number(probInput.value), speed: Number(speedInput.value) };
 
-    // Simulation state
+    // Keep motion independent of the display refresh rate.
     let isPlaying = false, animationId = null, finishedCount = 0;
-    let balls = [], bins = [], pinCoords = [], pinGrid = [], binCenters = [];
+    let lastFrame = null, accumulator = 0, displayWidth = 0, sizeKey = '';
+    let balls = [], bins = [], pinGrid = [], binCenters = [], normalBins = [];
+    const padding = { top: 140, bottom: 230, side: 60 };
+    const floor = boardHeight - 20, histogramHeight = 155;
+    const primaryBlue = '#3b82f6';
+    const fontSize = () => Math.max(14, 12 * boardWidth / displayWidth);
 
-    // Styling constants
-    const padding = { top: 60, bottom: 160, side: 80 };
-    const primaryBlue = '#3b82f6'; 
-
-    function syncUI(val, targetInput, targetSlider) {
-        targetInput.value = val;
-        if (targetSlider) targetSlider.value = val;
+    function resizeBoard(force = false) {
+        const minimum = settings.levels <= 16 ? 256 : Math.min(800, (settings.levels + 1) * 16);
+        const width = Math.max(minimum, plotWidth(canvas));
+        const key = width + ':' + Math.min(2, window.devicePixelRatio || 1);
+        if (!force && key === sizeKey) return;
+        sizeKey = key;
+        displayWidth = width;
+        sizePlot(canvas, width, width * boardHeight / boardWidth, boardWidth, boardHeight);
+        canvas.style.width = width + 'px';
+        cacheBoard();
     }
 
     function initBoard() {
-        const levels = parseInt(levelInput.value);
-        const width = canvas.width - padding.side * 2;
-        const height = canvas.height - padding.top - padding.bottom;
-        const dy = height / levels;
-        const dx = width / levels;
-
+        const levels = settings.levels;
+        const dx = (boardWidth - padding.side * 2) / (levels + 1);
+        const dy = (boardHeight - padding.top - padding.bottom) / levels;
         pinGrid = [];
-        pinCoords = [];
-        
-        // 1. Generate Pin Grid (2D for logic, Flat for drawing)
-        for (let l = 0; l < levels; l++) {
-            const pinsInRow = l + 1;
-            const rowWidth = (pinsInRow - 1) * dx;
-            const startX = (canvas.width / 2) - (rowWidth / 2);
-            
-            pinGrid[l] = [];
-            for (let i = 0; i < pinsInRow; i++) {
-                const coord = { x: startX + i * dx, y: padding.top + l * dy };
-                pinGrid[l][i] = coord;
-                pinCoords.push(coord); 
+        for (let row = 0; row < levels; row++) {
+            pinGrid[row] = [];
+            for (let col = 0; col <= row; col++) {
+                pinGrid[row].push({ x: boardWidth / 2 + (col - row / 2) * dx, y: padding.top + row * dy });
             }
         }
-
-        // 2. Pre-calculate Bin Centers based on the last row of pins
-        binCenters = [];
-        const lastRow = pinGrid[levels - 1];
-        const firstPinX = lastRow[0].x;
-        for (let i = 0; i <= levels; i++) {
-            binCenters.push(firstPinX - (dx / 2) + i * dx);
-        }
-
+        binCenters = Array.from({ length: levels + 1 }, (_, i) => boardWidth / 2 + (i - levels / 2) * dx);
         bins = new Array(levels + 1).fill(0);
         balls = [];
         finishedCount = 0;
+        normalBins = binCenters.map((_, i) => normalProbability(i, levels, settings.probability));
+        resizeBoard(true);
+    }
+
+    // Cache the pegs and walls until the board changes.
+    function cacheBoard() {
+        if (!pinGrid.length) return;
+        const bg = sizePlot(background, displayWidth, displayWidth * boardHeight / boardWidth, boardWidth, boardHeight);
+        bg.fillStyle = '#ffffff'; bg.fillRect(0, 0, boardWidth, boardHeight);
+        const dx = (boardWidth - padding.side * 2) / (settings.levels + 1);
+        const wallTop = pinGrid.at(-1)[0].y + 15;
+        bg.strokeStyle = '#d4d4d4'; bg.lineWidth = 1;
+        bg.beginPath();
+        for (let i = 0; i <= binCenters.length; i++) {
+            const x = binCenters[0] - dx / 2 + i * dx;
+            bg.moveTo(x, wallTop); bg.lineTo(x, floor);
+        }
+        bg.moveTo(padding.side, floor); bg.lineTo(boardWidth - padding.side, floor); bg.stroke();
+        bg.fillStyle = '#000000';
+        const radius = Math.max(1.5, 4.5 - settings.levels / 15);
+        for (const row of pinGrid) for (const pin of row) {
+            bg.beginPath(); bg.arc(pin.x, pin.y, radius, 0, Math.PI * 2); bg.fill();
+        }
     }
 
     function spawnBall() {
-        if (finishedCount + balls.length >= parseInt(ballInput.value)) return;
-        
-        const speedScale = parseFloat(speedInput.value) / 100;
-        const vy = (speedScale * 3.5) + 1.5;
-
-        // Start at the first pin (Top)
-        const startPin = pinGrid[0][0];
-
-        balls.push({
-            x: startPin.x,
-            y: padding.top - 20, 
-            targetX: startPin.x,
-            targetY: startPin.y,
-            vy: vy,
-            row: 0,
-            col: 0,
-            isFinalDrop: false,
-            finalBinIdx: null
-        });
+        if (finishedCount + balls.length >= settings.balls) return;
+        const pin = pinGrid[0][0];
+        balls.push({ x: pin.x, y: pin.y - 20, targetX: pin.x, targetY: pin.y, row: 0, col: 0, isFinalDrop: false, finalBinIdx: null });
     }
 
     function update() {
-        const p = parseFloat(probInput.value);
-        const levels = parseInt(levelInput.value);
-
+        const speed = 1.5 + 3.5 * settings.speed / 100;
         for (let i = balls.length - 1; i >= 0; i--) {
-            let b = balls[i];
-
-            // 1. Movement
-            b.y += b.vy;
-            // Smoothly interpolate X toward the current target
-            b.x += (b.targetX - b.x) * 0.15;
-
-            // 2. Target Detection
-            if (b.y >= b.targetY && !b.isFinalDrop) {
-                b.y = b.targetY; // Snap to target Y
-
-                if (b.row < levels - 1) {
-                    // Decide next pin (diagonal path)
-                    b.row++;
-                    if (Math.random() < p) b.col++;
-                    
-                    const nextPin = pinGrid[b.row][b.col];
-                    b.targetX = nextPin.x;
-                    b.targetY = nextPin.y;
+            const ball = balls[i];
+            ball.y += speed;
+            ball.x += (ball.targetX - ball.x) * 0.15;
+            if (ball.y >= ball.targetY && !ball.isFinalDrop) {
+                ball.y = ball.targetY;
+                if (Math.random() < settings.probability) ball.col++;
+                if (++ball.row < settings.levels) {
+                    const pin = pinGrid[ball.row][ball.col];
+                    ball.targetX = pin.x;
+                    ball.targetY = pin.y;
                 } else {
-                    // Final Decision: Decide the BIN
-                    const moveRight = Math.random() < p;
-                    b.finalBinIdx = moveRight ? b.col + 1 : b.col;
-                    
-                    b.targetX = binCenters[b.finalBinIdx];
-                    b.targetY = canvas.height + 100; // Drive toward floor
-                    b.isFinalDrop = true;
+                    ball.finalBinIdx = ball.col;
+                    ball.targetX = binCenters[ball.col];
+                    ball.isFinalDrop = true;
                 }
             }
-
-            // 3. Collection
-            if (b.y > canvas.height - 20) {
-                bins[b.finalBinIdx]++;
+            if (ball.y > floor) {
+                bins[ball.finalBinIdx]++;
                 balls.splice(i, 1);
                 finishedCount++;
             }
         }
     }
 
+    // Integrate the normal approximation over each unit-width bin.
+    function normalProbability(i, n, p) {
+        const sigma = Math.sqrt(n * p * (1 - p));
+        if (!sigma) return 0;
+        const cdf = x => {
+            const z = Math.abs(x), k = 1 / (1 + 0.2316419 * z);
+            const tail = Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * k * (0.319381530 + k * (-0.356563782 + k * (1.781477937 + k * (-1.821255978 + k * 1.330274429))));
+            return x < 0 ? tail : 1 - tail;
+        };
+        return Math.max(0, cdf((i + 0.5 - n * p) / sigma) - cdf((i - 0.5 - n * p) / sigma));
+    }
+
     function draw() {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(background, 0, 0, boardWidth, boardHeight);
+        const dx = (boardWidth - padding.side * 2) / (settings.levels + 1);
+        const normalVisible = overlayCheck.checked && finishedCount > 0 && settings.probability > 0 && settings.probability < 1;
+        const expected = normalBins.map(value => value * finishedCount);
+        const maximum = Math.max(1, ...bins, ...(normalVisible ? expected : [])) * 1.12;
+        const y = count => floor - count / maximum * histogramHeight;
 
-        const levels = parseInt(levelInput.value);
-        const pinRad = Math.max(1.5, 4.5 - (levels / 15)); 
-        const ballRad = Math.max(2.5, 6.5 - (levels / 15));
-        const width = canvas.width - padding.side * 2;
-        const dx = width / levels;
-        const dy = (canvas.height - padding.top - padding.bottom) / levels;
-
-        // 1. Draw Bin Walls (Centered between pre-calculated bin centers)
-        ctx.strokeStyle = '#cccccc';
-        ctx.lineWidth = 1;
-        binCenters.forEach((center, i) => {
-            const wallX = center - dx / 2;
-            ctx.beginPath();
-            ctx.moveTo(wallX, padding.top + (levels - 1) * dy + 15);
-            ctx.lineTo(wallX, canvas.height);
-            ctx.stroke();
-            // Closing wall for the last bin
-            if (i === binCenters.length - 1) {
-                const lastWallX = center + dx / 2;
-                ctx.beginPath();
-                ctx.moveTo(lastWallX, padding.top + (levels - 1) * dy + 15);
-                ctx.lineTo(lastWallX, canvas.height);
-                ctx.stroke();
-            }
-        });
-
-        // 2. Draw Pegs
-        ctx.fillStyle = '#000000';
-        pinCoords.forEach(p => {
-            ctx.beginPath(); ctx.arc(p.x, p.y, pinRad, 0, Math.PI * 2); ctx.fill();
-        });
-
-        // 3. Draw Bins
-        const maxBin = Math.max(...bins, 1);
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 10px monospace';
-        bins.forEach((count, i) => {
-            const center = binCenters[i];
-            const h = (count / maxBin) * (padding.bottom - 40);
-            ctx.fillStyle = primaryBlue; 
-            ctx.fillRect(center - (dx / 2) + 2, canvas.height - h, dx - 4, h);
-            if (count > 0) {
-                ctx.fillStyle = h > 25 ? '#ffffff' : primaryBlue;
-                const textY = h > 25 ? canvas.height - h + 15 : canvas.height - h - 5;
-                ctx.fillText(count, center, textY);
-            }
-        });
-
-        // 4. Draw Balls
-        balls.forEach(b => {
-            ctx.fillStyle = '#f23';
-            ctx.beginPath(); ctx.arc(b.x, b.y, ballRad, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath(); ctx.arc(b.x - ballRad / 3, b.y - ballRad / 3, ballRad / 4, 0, Math.PI * 2); ctx.fill();
-        });
-
-        drawStats();
+        // Share one count scale between the bars and both lines.
+        ctx.fillStyle = primaryBlue;
+        bins.forEach((count, i) => ctx.fillRect(binCenters[i] - dx / 2 + 2, y(count), Math.max(1, dx - 4), floor - y(count)));
         if (overlayCheck.checked && finishedCount > 0) {
-            const startX = binCenters[0];
-            drawAnalyticalGaussian(startX, dx, levels);
-            drawLiveDistribution(maxBin, startX, dx, levels);
-            drawLegend();
+            if (normalVisible) drawDistribution(expected, y, '#000000', [5, 5]);
+            drawDistribution(bins, y, '#f23', []);
         }
+
+        // Place readable counts above their bars with a clear backing.
+        ctx.textAlign = 'center'; ctx.font = 'bold ' + fontSize() + 'px monospace';
+        bins.forEach((count, i) => {
+            const label = String(count), width = ctx.measureText(label).width;
+            if (!count || width + 8 > dx) return;
+            const top = y(Math.max(count, normalVisible ? expected[i] : 0)) - 8;
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(binCenters[i] - width / 2 - 2, top - fontSize(), width + 4, fontSize() + 3);
+            ctx.fillStyle = '#000000'; ctx.fillText(label, binCenters[i], top);
+        });
+        const radius = Math.max(2.5, 6.5 - settings.levels / 15);
+        ctx.fillStyle = '#f23';
+        for (const ball of balls) {
+            ctx.beginPath(); ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2); ctx.fill();
+        }
+        drawStats();
+        if (overlayCheck.checked && finishedCount > 0) drawLegend(normalVisible);
+    }
+
+    function drawDistribution(values, y, color, dash) {
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath();
+        values.forEach((count, i) => {
+            if (i) ctx.lineTo(binCenters[i], y(count)); else ctx.moveTo(binCenters[i], y(count));
+        });
+        ctx.stroke(); ctx.setLineDash([]);
     }
 
     function drawStats() {
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 10px monospace';
-        const rx = canvas.width - 20, ry = 30;
         let sum = 0, sumSq = 0;
-        bins.forEach((c, i) => { sum += i * c; sumSq += (i * i) * c; });
-        const mean = finishedCount > 0 ? sum / finishedCount : 0;
-        const stdDev = finishedCount > 0 ? Math.sqrt(Math.max(0, (sumSq / finishedCount) - (mean * mean))) : 0;
-        ctx.fillText(`N: ${finishedCount}`, rx, ry);
-        ctx.fillText(`μ: ${mean.toFixed(2)}`, rx, ry + 15);
-        ctx.fillText(`σ: ${stdDev.toFixed(2)}`, rx, ry + 30);
+        bins.forEach((count, i) => { sum += i * count; sumSq += i * i * count; });
+        const mean = finishedCount ? sum / finishedCount : 0;
+        const deviation = finishedCount ? Math.sqrt(Math.max(0, sumSq / finishedCount - mean * mean)) : 0;
+        ctx.textAlign = 'left'; ctx.fillStyle = '#000000'; ctx.font = 'bold ' + fontSize() + 'px monospace';
+        [`N: ${finishedCount}`, `μ: ${mean.toFixed(2)}`, `σ: ${deviation.toFixed(2)}`].forEach((label, i) => ctx.fillText(label, 30 + i * 255, 44));
     }
 
-    function drawLegend() {
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 10px monospace';
-        const lx = 20, ly = 30;
-        ctx.strokeStyle = '#f23'; ctx.lineWidth = 2; ctx.beginPath(); 
-        ctx.moveTo(lx, ly); ctx.lineTo(lx + 20, ly); ctx.stroke();
-        ctx.fillText('Live Path', lx + 30, ly + 3);
-        ctx.strokeStyle = '#000000'; ctx.setLineDash([4, 4]); ctx.beginPath(); 
-        ctx.moveTo(lx, ly + 15); ctx.lineTo(lx + 20, ly + 15); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillText('Ideal Normal', lx + 30, ly + 18);
-    }
-
-    function drawAnalyticalGaussian(startX, dx, n) {
-        const p = parseFloat(probInput.value);
-        const mu = n * p, sigma = Math.sqrt(n * p * (1 - p));
-        ctx.strokeStyle = '#000000'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); ctx.beginPath();
-        const res = 200;
-        for (let i = 0; i <= res; i++) {
-            const cur = (i / res) * n;
-            const y = (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((cur - mu) / sigma, 2));
-            const sy = canvas.height - (y / (1 / (sigma * Math.sqrt(2 * Math.PI)))) * (padding.bottom - 40);
-            const sx = startX + cur * dx;
-            if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
-        }
-        ctx.stroke(); ctx.setLineDash([]); 
-    }
-
-    function drawLiveDistribution(maxBin, startX, dx, n) {
-        ctx.strokeStyle = '#f23'; ctx.lineWidth = 2; ctx.beginPath();
-        bins.forEach((count, i) => {
-            const sx = startX + i * dx;
-            const sy = canvas.height - (count / maxBin) * (padding.bottom - 40);
-            if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    function drawLegend(normalVisible) {
+        ctx.textAlign = 'left'; ctx.font = 'bold ' + fontSize() + 'px monospace';
+        const entries = [['Live Path', '#f23', []]];
+        if (normalVisible) entries.push(['Ideal Normal', '#000000', [5, 5]]);
+        entries.forEach(([label, color, dash], i) => {
+            const x = 30 + i * 360;
+            ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath();
+            ctx.moveTo(x, 91); ctx.lineTo(x + 25, 91); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = '#000000'; ctx.fillText(label, x + 35, 91 + fontSize() / 3);
         });
-        ctx.stroke();
     }
 
-    function animate() {
+    function pause() {
+        isPlaying = false;
+        cancelAnimationFrame(animationId);
+        animationId = null; lastFrame = null; accumulator = 0;
+        btnPlay.textContent = 'Play';
+    }
+
+    function animate(timestamp) {
+        animationId = null;
         if (!isPlaying) return;
-        update();
-        if (Math.random() < 0.15) spawnBall(); 
+        accumulator += lastFrame === null ? 0 : Math.min(100, Math.max(0, timestamp - lastFrame));
+        lastFrame = timestamp;
+        const step = 1000 / 60;
+        while (accumulator + 1e-9 >= step) {
+            accumulator = Math.max(0, accumulator - step);
+            update();
+            if (Math.random() < 0.15) spawnBall();
+        }
         draw();
+        if (!balls.length && finishedCount >= settings.balls) { pause(); return; }
         animationId = requestAnimationFrame(animate);
     }
 
-    btnPlay.addEventListener('click', () => { 
-        isPlaying = !isPlaying; 
-        btnPlay.textContent = isPlaying ? "Pause" : "Play"; 
-        if (isPlaying) animate(); 
+    btnPlay.addEventListener('click', () => {
+        if (isPlaying) { pause(); return; }
+        if (!balls.length && finishedCount >= settings.balls) return;
+        isPlaying = true; lastFrame = null; accumulator = 0;
+        btnPlay.textContent = 'Pause';
+        animationId = requestAnimationFrame(animate);
     });
-    
-    btnReset.addEventListener('click', () => { 
-        isPlaying = false; 
-        btnPlay.textContent = "Play"; 
-        cancelAnimationFrame(animationId); 
-        initBoard(); 
-        draw(); 
-    });
-    
+    btnReset.addEventListener('click', () => { pause(); initBoard(); draw(); });
     btnBatch.addEventListener('click', () => {
-        const count = parseInt(ballInput.value), n = parseInt(levelInput.value), p = parseFloat(probInput.value); 
-        for (let i = 0; i < count; i++) {
-            let s = 0; for (let j = 0; j < n; j++) if (Math.random() < p) s++;
-            if (s >= 0 && s < bins.length) bins[s]++;
+        for (let i = 0; i < settings.balls; i++) {
+            let bin = 0;
+            for (let j = 0; j < settings.levels; j++) if (Math.random() < settings.probability) bin++;
+            bins[bin]++;
         }
-        finishedCount += count; draw();
+        finishedCount += settings.balls;
+        if (!balls.length && finishedCount >= settings.balls) pause();
+        draw();
     });
-
-    const sliders = [[document.getElementById('plinko-ball-slider'), ballInput], [document.getElementById('plinko-level-slider'), levelInput], [document.getElementById('plinko-prob-slider'), probInput], [document.getElementById('plinko-speed-slider'), speedInput]];
-    sliders.forEach(([s, i]) => {
-        const h = (e) => { syncUI(e.target.value, i, s); initBoard(); draw(); };
-        if(s) s.addEventListener('input', h); 
-        if(i) i.addEventListener('change', h);
-    });
-
+    const sliders = [
+        [document.getElementById('plinko-ball-slider'), ballInput],
+        [document.getElementById('plinko-level-slider'), levelInput],
+        [document.getElementById('plinko-prob-slider'), probInput],
+        [document.getElementById('plinko-speed-slider'), speedInput]
+    ];
+    sliders.forEach(([slider, input], index) => bindPair(input, slider, value => {
+        settings[['balls', 'levels', 'probability', 'speed'][index]] = value;
+        if (index !== 3) { pause(); initBoard(); }
+        draw();
+    }));
+    observePlot(canvas, force => { resizeBoard(force); draw(); });
+    overlayCheck.addEventListener('change', draw);
+    const details = canvas.closest('details');
+    details?.addEventListener('toggle', () => { if (!details.open) pause(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+    window.addEventListener('pagehide', pause);
     initBoard();
     draw();
 }

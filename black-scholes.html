@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sandbox | Ryan J. Myers</title>
+    <title>Black-Scholes-Merton Model | Ryan J. Myers</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
@@ -67,6 +67,8 @@
     }
 })();
 </script>
+  <script type="module" crossorigin src="./assets/modulepreload-polyfill-Ke7zwH0v.js"></script>
+  <script type="module" crossorigin src="./assets/main-Cf719Hro.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/style-DKSny-RA.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
@@ -123,12 +125,12 @@
             <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
             <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
             <li class="site-nav-group">
-                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="page">Sandbox</a>
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="location">Sandbox</a>
                 <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
                 <ul id="sandbox-submenu" class="site-submenu">
                     <li><a class="site-submenu-link" href="./logistic-map.html">Logistic Map</a></li>
                     <li><a class="site-submenu-link" href="./plinko.html">Plinko</a></li>
-                    <li><a class="site-submenu-link" href="./black-scholes.html">Black-Scholes-Merton Model</a></li>
+                    <li><a class="site-submenu-link" href="./black-scholes.html" aria-current="page">Black-Scholes-Merton Model</a></li>
                 </ul>
             </li>
             <li><a href="./other.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Other</a></li>
@@ -263,23 +265,131 @@
 </script>
 
     <main id="main-content" tabindex="-1" class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
-        <header class="text-center mb-10">
-            <h1 class="text-5xl font-bold mb-6 text-crimson dark:text-green">Sandbox</h1>
-            <p class="text-xl leading-relaxed">This is the place for small apps. Please reach out if you have an interesting idea for this page!</p>
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-crimson dark:text-green">Black-Scholes-Merton Model</h1>
         </header>
-        <div class="grid gap-4">
-            <a href="./logistic-map.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
-                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Logistic Map <span aria-hidden="true"></span></h2>
-                <p class="mt-2 opacity-70">Bifurcation theory</p>
-            </a>
-            <a href="./plinko.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
-                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Plinko <span aria-hidden="true"></span></h2>
-                <p class="mt-2 opacity-70">Central Limit Theorem</p>
-            </a>
-            <a href="./black-scholes.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
-                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Black-Scholes-Merton Model <span aria-hidden="true"></span></h2>
-            </a>
+        <div class="flex justify-end items-center mb-8">
+            <div class="flex space-x-4 text-[10px] font-bold uppercase tracking-widest opacity-60">
+                <button id="expand-all" class="hover:text-crimson dark:hover:text-green transition underline underline-offset-4">Expand All</button>
+                <span>/</span>
+                <button id="collapse-all" class="hover:text-crimson dark:hover:text-green transition underline underline-offset-4">Collapse All</button>
+            </div>
         </div>
+
+        <section class="bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden" aria-label="Black-Scholes-Merton Model calculator">
+<div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed">
+                    
+                    <div class="w-full flex flex-col items-center mb-6 gap-4">
+                        <div class="w-full max-w-[800px] aspect-[4/3] bg-white rounded-xl border border-black/10 overflow-hidden shadow-inner relative plot-shell">
+                            <canvas id="bsCanvas" width="800" height="600" class="w-full h-full block" role="img" aria-label="Option value against asset price" aria-describedby="bs-description"></canvas>
+                        </div>
+
+                        <div class="flex flex-col gap-y-8 mt-4 w-full p-6 md:p-8 bg-slate-100 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 app-controls">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full items-end border-b border-black/10 dark:border-white/10 pb-8">
+                                
+                                <div>
+                                    <span class="slider-label">Expected Profit/Loss</span>
+                                    <div id="bs-price-display" class="w-full px-4 py-2 text-center rounded-lg font-mono text-2xl font-black border-2 border-black dark:border-white bg-white dark:bg-[#18181b] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" role="status" aria-live="polite" aria-atomic="true">
+                                        $0.00
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Current Stock Price: <input type="number" id="bs-s-val" value="100" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1" aria-label="Current Stock Price"></span>
+                                    <input type="range" id="bs-s-slider" min="10" max="200" step="1" value="100" class="w-full accent-crimson dark:accent-green cursor-pointer" aria-label="Current Stock Price">
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Option Type</span>
+                                    <select id="bs-type-select" class="w-full" aria-label="Option Type">
+                                        <option value="call" selected>Call Option (Bullish)</option>
+                                        <option value="put">Put Option (Bearish)</option>
+                                    </select>
+                                </div>
+                                
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-6 w-full">
+                                
+                                <div>
+                                    <span class="slider-label">Strike Price: <input type="number" id="bs-k-val" value="100" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1" aria-label="Strike Price"></span>
+                                    <input type="range" id="bs-k-slider" min="10" max="200" step="1" value="100" class="w-full accent-crimson dark:accent-green" aria-label="Strike Price">
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Time to Expiration (Days): <input type="number" id="bs-t-val" value="30" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1" aria-label="Time to Expiration (Days)"></span>
+                                    <input type="range" id="bs-t-slider" min="1" max="365" step="1" value="30" class="w-full accent-crimson dark:accent-green" aria-label="Time to Expiration (Days)">
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Volatility (%): <input type="number" id="bs-vol-val" value="20" min="1" max="100" step="1" class="w-12 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1" aria-label="Volatility (%)"></span>
+                                    <input type="range" id="bs-vol-slider" min="1" max="100" step="1" value="20" class="w-full accent-crimson dark:accent-green" aria-label="Volatility (%)">
+                                </div>
+
+                                <div>
+                                    <span class="slider-label">Option Cost ($): <input type="number" id="bs-cost-val" value="5.00" step="0.1" class="w-14 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none ml-1" aria-label="Option Cost ($)"></span>
+                                    <input type="range" id="bs-cost-slider" min="0" max="50" step="0.1" value="5.00" class="w-full accent-crimson dark:accent-green" aria-label="Option Cost ($)">
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 mt-8">
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest text-black/70 dark:text-white/70">
+                                <h2>Description</h2>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs" aria-hidden="true">↓</span>
+                            </summary>
+                            <div class="px-6 py-4 text-sm text-black/80 dark:text-white/80 border-t border-black/5 dark:border-white/5">
+                                <p class="mb-4" id="bs-description">
+                                    The Black-Scholes-Merton model is a Nobel Prize winning mathematical contribution used to determine the fair price of a financial option. At its core, the BSM model is a partial differential equation, specifically a diffusion equation. It models how the probability of an option's value diffuses through the market as it approaches expiration, linking it to the concept of geometric Brownian motion.
+                                </p>
+                                <p class="mb-4">
+                                    The model assumes that stock prices take a continuous "random walk" over time. By mapping this random spread, it calculates the probability that an option will cross its target threshold before the clock runs out. Some important concepts involved are:
+                                </p>
+                                <ul class="list-disc list-inside space-y-2 mb-4 ml-2">
+                                    <li>Current Price versus Strike Price: Where the asset is currently valued versus the target threshold it needs to hit.</li>
+                                    <li>Time to Expiration: How much time is left before the contract expires.</li>
+                                    <li>Volatility: This acts exactly like thermal conductivity in a heat transfer problem. Higher volatility means the probability "heat" spreads out much faster and wider, which increases the theoretical value of the option. This can be thought of as how erratically a stock has behaved in the past.</li>
+                                </ul>
+                                <p>
+                                    By comparing the theoretical value generated by this diffusion model against the actual cost to buy the option, you can estimate your expected profit or loss. This is all a massive simplification of a topic that is still challenging to me, and it doesn't even touch on the "Greeks" or the advanced statistical option analyses out there. Please look at the references for a more comprehensive discussion, as this was just an exercise for me to further explore financial engineering.
+                                </p>
+                            </div>
+                        </details>
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest text-black/70 dark:text-white/70">
+                                <h2>References</h2>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs" aria-hidden="true">↓</span>
+                            </summary>
+                            <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                                <ul class="space-y-3">
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: BSM Model</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_equation" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: BSM Equation</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.investopedia.com/terms/b/blackscholes.asp" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Investopedia: BSM Overview</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://galton.uchicago.edu/~lalley/Courses/390/Lecture7.pdf" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Lecture on the BSM equation</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.khanacademy.org/economics-finance-domain/core-finance/derivative-securities/black-scholes/v/introduction-to-the-black-scholes-formula" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Khan Academy on BSM</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://blackscholesalgorithm.streamlit.app/Calculator" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">A much more comprehensive BSM calculator</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+        </section>
     </main>
 
     <footer class="fixed bottom-2 right-6 z-10 site-footer">
@@ -287,7 +397,6 @@
             © <span data-current-year>2026</span> Ryan Myers. Code under MIT.
         </p>
     </footer>
-
 
 </body>
 </html>

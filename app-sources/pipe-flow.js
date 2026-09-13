@@ -23,6 +23,7 @@ var rafCheck = document.getElementById('rafCheck');
 var speedReadout = document.getElementById('speedReadout');
 
 var running = false;
+var frameHandle = null, frameUsesRaf = true, flowFailed = false;
 var stepCount = 0;
 var startTime = 0;
 var four9ths = 4.0 / 9.0;
@@ -168,6 +169,10 @@ function changeObstacle() {
 }
 
 function initFluid() {
+    flowFailed = false;
+    document.getElementById('flowError').hidden = true;
+    document.getElementById('flowRate').hidden = false;
+    speedReadout.textContent = '0';
     var u0 = Number(speedSlider.value);
     for (var y = 0; y < ydim; y++) {
         for (var x = 0; x < xdim; x++) {
@@ -179,6 +184,8 @@ function initFluid() {
 }
 
 function simulate() {
+    frameHandle = null;
+    if (!running || flowFailed) return;
     var stepsPerFrame = Number(stepsSlider.value);
     setBoundaries();
     var pushing = false; var pushX, pushY, pushUX, pushUY; 
@@ -196,7 +203,8 @@ function simulate() {
     } else { oldMouseX = -1; oldMouseY = -1; }
     
     for (var step = 0; step < stepsPerFrame; step++) {
-        collide(); stream();
+        try { collide(); stream(); }
+        catch (error) { stopFlow(error.message); return; }
         if (tracerCheck.checked) moveTracers();
         if (pushing) push(pushX, pushY, pushUX, pushUY);
         time++;
@@ -205,8 +213,9 @@ function simulate() {
     if (running) {
         stepCount += stepsPerFrame;
         var elapsed = ((new Date()).getTime() - startTime) / 1000;
-        speedReadout.innerHTML = Number(stepCount / elapsed).toFixed(0);
-        if (rafCheck.checked) { window.requestAnimationFrame(simulate); } else { window.setTimeout(simulate, 1); }
+        speedReadout.innerHTML = Number(stepCount / Math.max(elapsed, 0.001)).toFixed(0);
+        frameUsesRaf = rafCheck.checked;
+        frameHandle = frameUsesRaf ? window.requestAnimationFrame(simulate) : window.setTimeout(simulate, 1);
     }
 }
 
@@ -228,12 +237,14 @@ function collide() {
         for (var x = 1; x < xdim - 1; x++) {
             var i = x + y * xdim;
             var thisrho = n0[i] + nN[i] + nS[i] + nE[i] + nW[i] + nNW[i] + nNE[i] + nSW[i] + nSE[i];
+            if (!Number.isFinite(thisrho) || thisrho <= 0) throw new Error('Flow became unstable. Adjust the inputs and Reset.');
             rho[i] = thisrho;
             
             var thisux = (nE[i] + nNE[i] + nSE[i] - nW[i] - nNW[i] - nSW[i]) / thisrho; ux[i] = thisux;
             var thisuy = (nN[i] + nNE[i] + nNW[i] - nS[i] - nSE[i] - nSW[i]) / thisrho; uy[i] = thisuy;
             
             var one9thrho = one9th * thisrho, ux3 = 3 * thisux, uy3 = 3 * thisuy, ux2 = thisux * thisux, uy2 = thisuy * thisuy, u2 = ux2 + uy2, u215 = 1.5 * u2;
+            if (!Number.isFinite(u215 * thisrho)) throw new Error('Flow became unstable. Adjust the inputs and Reset.');
             
             n0[i] += omega * (four9ths * thisrho * (1 - u215) - n0[i]);
             nE[i] += omega * (one9thrho * (1 + ux3 + 4.5 * ux2 - u215) - nE[i]);
@@ -285,7 +296,7 @@ function moveTracers() {
         var newRx = Math.floor(tracerX[t]), newRy = Math.floor(tracerY[t]);
         if (tracerX[t] > xdim - 1 || newRx < 0 || newRx >= xdim || newRy <= 0 || newRy >= ydim - 1 || barrier[newRx + newRy * xdim] === 1) {
             var valid = false;
-            while (!valid) {
+            for (var attempt = 0; attempt < 128 && !valid; attempt++) {
                 var spawnY = (Math.random() * 0.81 + 0.09) * ydim;
                 var sRy = Math.floor(spawnY);
                 if (barrier[0 + sRy * xdim] === 0) {
@@ -334,6 +345,7 @@ function initTracers() {
 }
 
 function paintCanvas() {
+    if (flowFailed) return;
     var contrast = Math.pow(1.2, Number(contrastSlider.value));
     var plotType = plotSelect.selectedIndex;
     if (plotType == 3) computeCurl(); 
@@ -401,23 +413,98 @@ function drawSensor() {
     context.fillText("ux:" + Number(ux[i]).toFixed(3) + " uy:" + Number(uy[i]).toFixed(3), cx + 10, cy - 10);
 }
 
-canvas.addEventListener('mousedown', function(e) {
-    mouseIsDown = true; var r = canvas.getBoundingClientRect();
-    var mx = e.clientX - r.left; var my = e.clientY - r.top;
-    if (sensorCheck.checked) {
-        var gl = canvasToGrid(mx, my); var dx = (gl.x - sensorX)*pxPerSquare; var dy = (gl.y - sensorY)*pxPerSquare;
-        if (Math.sqrt(dx*dx+dy*dy) <= 10) draggingSensor = true;
-    }
-    mouseX = mx; mouseY = my;
+// Convert displayed pointer pixels into the unchanged simulation canvas.
+function pointerPosition(event) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: Math.max(0, Math.min(canvas.width - 1, (event.clientX - rect.left) * canvas.width / rect.width)),
+        y: Math.max(0, Math.min(canvas.height - 1, (event.clientY - rect.top) * canvas.height / rect.height))
+    };
+}
+
+function canvasToGrid(cx, cy) {
+    return {
+        x: Math.max(0, Math.min(xdim - 1, Math.floor(cx / pxPerSquare))),
+        y: Math.max(0, Math.min(ydim - 1, Math.floor((canvas.height - 1 - cy) / pxPerSquare)))
+    };
+}
+
+// Leave page scrolling available until fluid dragging is selected.
+function updateTouchMode() {
+    canvas.style.touchAction = dragCheck.checked ? 'pinch-zoom' : 'pan-y pinch-zoom';
+}
+var pointerStart = null;
+canvas.addEventListener('pointerdown', function(event) {
+    if (event.button !== 0 || event.isPrimary === false) return;
+    var point = pointerPosition(event);
+    pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    var grid = canvasToGrid(point.x, point.y);
+    draggingSensor = sensorCheck.checked && Math.hypot((grid.x - sensorX) * pxPerSquare, (grid.y - sensorY) * pxPerSquare) <= 10;
+    mouseIsDown = dragCheck.checked || draggingSensor;
+    mouseX = point.x; mouseY = point.y;
+    oldMouseX = -1; oldMouseY = -1;
+    if (mouseIsDown) canvas.setPointerCapture?.(event.pointerId);
 });
-window.addEventListener('mouseup', function() { mouseIsDown = false; draggingSensor = false; });
-canvas.addEventListener('mousemove', function(e) {
-    var r = canvas.getBoundingClientRect(); mouseX = e.clientX - r.left; mouseY = e.clientY - r.top;
-    if (mouseIsDown && draggingSensor) { var gl = canvasToGrid(mouseX, mouseY); sensorX = gl.x; sensorY = gl.y; paintCanvas(); }
+canvas.addEventListener('pointermove', function(event) {
+    if (!pointerStart || event.pointerId !== pointerStart.id) return;
+    var point = pointerPosition(event);
+    mouseX = point.x; mouseY = point.y;
+    if (mouseIsDown && draggingSensor) {
+        var grid = canvasToGrid(mouseX, mouseY);
+        sensorX = grid.x; sensorY = grid.y;
+        paintCanvas();
+    }
 });
 
-function canvasToGrid(cx, cy) { return { x: Math.floor(cx/pxPerSquare), y: Math.floor((canvas.height-1-cy)/pxPerSquare) }; }
-function startStop() { running = !running; startButton.value = running ? "Pause" : "Start"; if (running) { startTime = (new Date()).getTime(); stepCount = 0; simulate(); } }
+// A tap positions the sensor without requiring dragging.
+function endPointer(event) {
+    if (!pointerStart || event.pointerId !== pointerStart.id) return;
+    if (event.type === 'pointerup' && sensorCheck.checked && !dragCheck.checked && Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) < 8) {
+        var point = pointerPosition(event), grid = canvasToGrid(point.x, point.y);
+        sensorX = grid.x; sensorY = grid.y;
+        paintCanvas();
+    }
+    mouseIsDown = false; draggingSensor = false; pointerStart = null;
+    oldMouseX = -1; oldMouseY = -1;
+}
+window.addEventListener('pointerup', endPointer);
+window.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('lostpointercapture', endPointer);
+dragCheck.addEventListener('change', updateTouchMode);
+updateTouchMode();
+
+// Cancel the scheduler that owns the pending frame.
+function pauseFlow() {
+    running = false;
+    if (frameHandle !== null) {
+        if (frameUsesRaf) window.cancelAnimationFrame(frameHandle);
+        else window.clearTimeout(frameHandle);
+    }
+    frameHandle = null;
+    startButton.value = 'Start';
+}
+
+// Keep the last drawn frame when the calculation fails.
+function stopFlow(message) {
+    pauseFlow();
+    flowFailed = true;
+    document.getElementById('flowRate').hidden = true;
+    const output = document.getElementById('flowError');
+    output.textContent = message;
+    output.hidden = false;
+}
+
+function startStop() {
+    if (running) { pauseFlow(); return; }
+    if (flowFailed) return;
+    running = true;
+    startButton.value = 'Pause';
+    startTime = (new Date()).getTime();
+    stepCount = 0;
+    simulate();
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseFlow(); });
+window.addEventListener('pagehide', pauseFlow);
 function resetTimer() { stepCount = 0; startTime = (new Date()).getTime(); }
 function adjustSpeed() { speedValue.innerHTML = Number(speedSlider.value).toFixed(3); }
 function adjustViscosity() { viscValue.innerHTML = Number(viscSlider.value).toFixed(3); }

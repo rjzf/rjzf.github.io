@@ -1,30 +1,16 @@
+import { sizePlot, plotWidth, observePlot, fieldError } from './view-utils.js';
+
 export function initLogistic() {
     const tsCanvas = document.getElementById('timeSeriesCanvas');
     const bfCanvas = document.getElementById('bifurcationCanvas');
     if (!tsCanvas || !bfCanvas) return;
 
-    // High-DPI Canvas Setup Helper 
-    // Set to 250px height to match your CSS "h-64" (256px) container
-    function setupCanvasDPI(canvas, forceW, forceH) {
-        const dpr = window.devicePixelRatio || 1;
-        const w = forceW || 800;
-        const h = forceH || 250; 
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        canvas.style.width = w + 'px';
-        canvas.style.height = h + 'px';
-        canvas._logW = w;
-        canvas._logH = h;
-        const ctx = canvas.getContext('2d');
-        ctx.scale(dpr, dpr);
-        return ctx;
-    }
-
-    const tsCtx = setupCanvasDPI(tsCanvas, 800, 250);
-    const bfCtx = setupCanvasDPI(bfCanvas, 800, 250);
-
+    // Match the visible width without changing the map state.
+    const width = plotWidth(tsCanvas);
+    const tsCtx = sizePlot(tsCanvas, width, 280);
+    const bfCtx = sizePlot(bfCanvas, width, 280);
     const offscreenCanvas = document.createElement('canvas');
-    const offCtx = setupCanvasDPI(offscreenCanvas, 800, 250);
+    const offCtx = sizePlot(offscreenCanvas, width, 280);
 
     // UI Setup
     const rSlider = document.getElementById('r-slider');
@@ -41,11 +27,12 @@ export function initLogistic() {
     let x0 = parseFloat(x0Slider.value);
     let isPlaying = false;
     let animationId = null;
+    let lastFrame = null, rRemainder = 0;
 
     // Colors
     const tsLineColor = '#000000'; 
     const tsDotColor = '#000000';                  
-    const bfDotColor = 'rgba(0, 0, 0, 0.15)';       
+    const bfDotColor = 'rgba(0, 0, 0, 0.45)';       
     const scrubberColor = 'rgba(220, 38, 38, 0.8)'; 
 
     // Adjusted Padding for the smaller 250px window
@@ -86,7 +73,7 @@ export function initLogistic() {
         ctx.fillText(yLabel, 0, 0);
         ctx.restore();
 
-        ctx.font = '10px sans-serif';
+        ctx.font = '12px sans-serif';
         
         // Y Ticks
         ctx.textAlign = 'right';
@@ -103,7 +90,7 @@ export function initLogistic() {
         // X Ticks
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        xTicks.forEach(val => {
+        xTicks.filter((value, index) => w >= 500 || xTicks.length <= 5 || index % 2 === 0).forEach(val => {
             let px = pLeft + ((val - xMin) / (xMax - xMin)) * graphW;
             ctx.beginPath();
             ctx.moveTo(px, h - pBottom);
@@ -128,19 +115,23 @@ export function initLogistic() {
         const graphW = offscreenCanvas._logW - pLeft - pRight;
         const graphH = offscreenCanvas._logH - pTop - pBottom;
 
-        for (let px = 0; px < graphW; px++) {
-            let testR = (px / graphW) * 4.0;
+        const samples = Math.min(2048, Math.ceil(graphW * Math.min(2, window.devicePixelRatio || 1)));
+        const dot = graphW / samples;
+        for (let sample = 0; sample < samples; sample++) {
+            const px = sample * dot;
+            let testR = ((sample + 0.5) / samples) * 4.0;
             let x = 0.5;
-            for (let i = 0; i < 200; i++) x = testR * x * (1 - x);
+            for (let i = 0; i < 1000; i++) x = testR * x * (1 - x);
             for (let i = 0; i < 100; i++) {
                 x = testR * x * (1 - x);
                 let py = offscreenCanvas._logH - pBottom - (x * graphH);
-                offCtx.fillRect(pLeft + px, py, 1, 1);
+                offCtx.fillRect(pLeft + px, py, Math.max(0.5, dot), 0.7);
             }
         }
     }
 
     function updateLabels() {
+        r = Math.round(r * 1000) / 1000;
         rVal.value = r.toFixed(3); 
         x0Val.value = x0.toFixed(2);
         rSlider.value = r;
@@ -171,7 +162,7 @@ export function initLogistic() {
 
         tsCtx.beginPath();
         tsCtx.strokeStyle = tsLineColor;
-        tsCtx.lineWidth = 1.5;
+        tsCtx.lineWidth = graphW < 320 ? 1 : 1.4;
         for (let i = 0; i < history.length; i++) {
             let px = pLeft + (i / steps) * graphW;
             let py = tsCanvas._logH - pBottom - (history[i] * graphH);
@@ -185,7 +176,7 @@ export function initLogistic() {
             let px = pLeft + (i / steps) * graphW;
             let py = tsCanvas._logH - pBottom - (history[i] * graphH);
             tsCtx.beginPath();
-            tsCtx.arc(px, py, 2.5, 0, Math.PI * 2);
+            tsCtx.arc(px, py, Math.max(0.7, Math.min(2.1, graphW / steps * 0.28)), 0, Math.PI * 2);
             tsCtx.fill();
         }
     }
@@ -208,26 +199,37 @@ export function initLogistic() {
         drawBifurcation();
     }
 
-    function animate() {
+    // Advance at the same rate on different refresh-rate displays.
+    function animate(timestamp) {
         if (!isPlaying) return;
-        r += 0.0035;
+        const elapsed = lastFrame === null ? 0 : Math.max(0, Math.min(100, timestamp - lastFrame));
+        lastFrame = timestamp;
+        rRemainder += elapsed * 0.00021;
+        const increment = Math.floor(rRemainder * 1000 + 1e-9) / 1000;
+        rRemainder -= increment;
+        r += increment;
         if (r >= 4.0) { r = 4.0; isPlaying = false; btnPlayPause.textContent = "Play"; }
+        fieldError(rVal);
         updateLabels();
         renderFrame();
         if (isPlaying) animationId = requestAnimationFrame(animate);
     }
 
-    rSlider.addEventListener('input', (e) => { r = parseFloat(e.target.value); updateLabels(); renderFrame(); });
-    x0Slider.addEventListener('input', (e) => { x0 = parseFloat(e.target.value); updateLabels(); renderFrame(); });
+    rSlider.addEventListener('input', (e) => { r = parseFloat(e.target.value); fieldError(rVal); updateLabels(); renderFrame(); });
+    x0Slider.addEventListener('input', (e) => { x0 = parseFloat(e.target.value); fieldError(x0Val); updateLabels(); renderFrame(); });
 
     rVal.addEventListener('change', (e) => {
+        fieldError(rVal);
         let newR = parseFloat(e.target.value);
-        if (!isNaN(newR)) { r = Math.max(0, Math.min(4.0, newR)); updateLabels(); renderFrame(); }
+        if (!Number.isFinite(newR) || !rVal.checkValidity()) { fieldError(rVal, 'Enter a growth rate from 0 to 4 in steps of 0.001.'); return; }
+        fieldError(rVal); r = newR; updateLabels(); renderFrame();
     });
 
     x0Val.addEventListener('change', (e) => {
+        fieldError(x0Val);
         let newX0 = parseFloat(e.target.value);
-        if (!isNaN(newX0)) { x0 = Math.max(0.01, Math.min(0.99, newX0)); updateLabels(); renderFrame(); }
+        if (!Number.isFinite(newX0) || !x0Val.checkValidity()) { fieldError(x0Val, 'Enter an initial population from 0.01 to 0.99 in steps of 0.01.'); return; }
+        fieldError(x0Val); x0 = newX0; updateLabels(); renderFrame();
     });
 
     btnPlayPause.addEventListener('click', () => {
@@ -236,19 +238,27 @@ export function initLogistic() {
             if (animationId) cancelAnimationFrame(animationId);
         } else {
             if (r >= 4.0) r = 0; isPlaying = true; btnPlayPause.textContent = "Pause";
-            animate();
+            lastFrame = null;
+            rRemainder = 0;
+            animationId = requestAnimationFrame(animate);
         }
     });
 
     btnStep.addEventListener('click', () => {
         isPlaying = false; btnPlayPause.textContent = "Play";
-        r = Math.min(4.0, r + (parseFloat(stepSizeInput.value) || 0.05));
+        if (animationId) cancelAnimationFrame(animationId);
+        fieldError(stepSizeInput);
+        const step = stepSizeInput.valueAsNumber;
+        if (!Number.isFinite(step) || !stepSizeInput.checkValidity()) { fieldError(stepSizeInput, 'Enter a step from 0.001 to 1 in increments of 0.001.'); return; }
+        fieldError(stepSizeInput);
+        r = Math.min(4.0, r + step);
         updateLabels(); renderFrame();
     });
 
     btnReset.addEventListener('click', () => {
         isPlaying = false; btnPlayPause.textContent = "Play";
         if (animationId) cancelAnimationFrame(animationId);
+        fieldError(rVal); fieldError(x0Val);
         r = 2.0; x0 = 0.5; updateLabels(); renderFrame();
     });
 
@@ -263,6 +273,27 @@ export function initLogistic() {
         });
     }
 
+    let sizeKey = width + ':' + Math.min(2, window.devicePixelRatio || 1);
+    observePlot(tsCanvas, (force) => {
+        const nextWidth = plotWidth(tsCanvas);
+        const nextKey = nextWidth + ':' + Math.min(2, window.devicePixelRatio || 1);
+        if (!force && nextKey === sizeKey) return;
+        sizeKey = nextKey;
+        for (const canvas of [tsCanvas, bfCanvas, offscreenCanvas]) sizePlot(canvas, nextWidth, 280);
+        preRenderBifurcation();
+        renderFrame();
+    });
     preRenderBifurcation();
     renderFrame();
+
+    // Pause without advancing the map when the page is hidden.
+    const pause = () => {
+        isPlaying = false;
+        btnPlayPause.textContent = 'Play';
+        cancelAnimationFrame(animationId);
+        animationId = null;
+        lastFrame = null;
+    };
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+    window.addEventListener('pagehide', pause);
 }

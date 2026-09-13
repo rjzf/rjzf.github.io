@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Logistic Map | Ryan J. Myers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script data-site-theme>
+// Apply the saved theme before page content is displayed.
+(() => {
+    const root = document.documentElement;
+    if (root.dataset.themeReady === 'true') return;
+
+    let savedTheme;
+    try {
+        savedTheme = localStorage.getItem('theme');
+    } catch {
+        savedTheme = null;
+    }
+
+    const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    let userOverride = savedTheme === 'light' || savedTheme === 'dark';
+    const preferredDark = systemTheme?.matches ?? false;
+    const initialDark = savedTheme === 'dark' || (savedTheme !== 'light' && preferredDark);
+
+    // Announce the action available from the theme button.
+    function updateButton() {
+        const label = root.classList.contains('dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        document.getElementById('theme-toggle')?.setAttribute('aria-label', label);
+    }
+
+    root.classList.toggle('dark', initialDark);
+    root.dataset.themeReady = 'true';
+
+    // Handle clicks independently of header and application startup.
+    document.addEventListener('click', event => {
+        const button = event.target.closest?.('.site-header #theme-toggle');
+        if (!button) return;
+        const dark = !root.classList.contains('dark');
+        userOverride = true;
+        root.classList.toggle('dark', dark);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+        try {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        } catch {
+            // Keep the current page usable when preferences cannot be saved.
+        }
+    });
+
+    // Follow system changes until the user chooses a theme.
+    systemTheme?.addEventListener('change', event => {
+        if (userOverride) return;
+        root.classList.toggle('dark', event.matches);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+    });
+    document.addEventListener('site-header-ready', updateButton);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateButton, { once: true });
+    } else {
+        updateButton();
+    }
+})();
+</script>
+  <script type="module" crossorigin src="./assets/modulepreload-polyfill-Ke7zwH0v.js"></script>
+  <script type="module" crossorigin src="./assets/main-Cf719Hro.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/style-DKSny-RA.css">
+</head>
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
+
+    <style>
+    /* Keep desktop arrows out of view until keyboard focus needs them. */
+    @media (min-width: 80rem) {
+        .site-header .site-nav-group > .site-nav-link { padding-right: .75rem; }
+        .site-header .site-submenu-toggle:not(:focus-visible) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+</style>
+<nav class="site-header top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5" data-position="sticky" aria-label="Primary navigation">
+    <a href="#main-content" class="site-skip-link">Skip to content</a>
+    <div class="site-header-bar">
+        <div class="site-brand">
+            <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
+                Ryan J. Myers
+            </a>
+        </div>
+
+        <div class="site-menu-control">
+            <button id="menu-toggle" type="button" aria-label="Open navigation" aria-controls="mobile-menu" aria-expanded="false" class="h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all" hidden>
+                <span class="text-2xl" aria-hidden="true">☰</span>
+            </button>
+        </div>
+
+        <div class="site-theme-control">
+            <button id="theme-toggle" type="button" aria-label="Switch color theme" class="group h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
+                <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]" aria-hidden="true">💡</span>
+                <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity" aria-hidden="true">💡</span>
+            </button>
+        </div>
+        <!-- Edit this list to update navigation on every page. -->
+        <ul id="mobile-menu" class="site-nav-links bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
+            <li><a href="./index.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Home</a></li>
+            <li><a href="./about.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">About</a></li>
+            <li class="site-nav-group">
+                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Instability</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Instability pages" aria-controls="instability-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="instability-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
+                    <li><a class="site-submenu-link" href="./rayleigh-taylor.html">Rayleigh-Taylor</a></li>
+                </ul>
+            </li>
+            <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
+            <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
+            <li class="site-nav-group">
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="location">Sandbox</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="sandbox-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./logistic-map.html" aria-current="page">Logistic Map</a></li>
+                    <li><a class="site-submenu-link" href="./plinko.html">Plinko</a></li>
+                    <li><a class="site-submenu-link" href="./black-scholes.html">Black-Scholes-Merton Model</a></li>
+                </ul>
+            </li>
+            <li><a href="./other.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Other</a></li>
+        </ul>
+    </div>
+</nav>
+<script data-site-header>
+// Connect navigation without waiting for any application modules.
+(() => {
+    const header = document.querySelector('.site-header');
+    const button = header?.querySelector('#menu-toggle');
+    const links = header?.querySelector('#mobile-menu');
+    if (!button || !links || header.dataset.menuReady === 'true') return;
+
+    // Keep footer years current without changing their appearance.
+    function updateFooterYear() {
+        const year = String(new Date().getFullYear());
+        document.querySelectorAll('[data-current-year]').forEach(element => {
+            element.textContent = year;
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateFooterYear, { once: true });
+    else updateFooterYear();
+    window.addEventListener('pageshow', updateFooterYear);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) updateFooterYear();
+    });
+
+    const desktop = window.matchMedia('(min-width: 80rem)');
+
+    const groups = [...header.querySelectorAll('.site-nav-group')];
+
+    // Show one submenu and keep its disclosure state in sync.
+    function setSubmenu(group, expanded) {
+        group.querySelector('.site-submenu').hidden = !expanded;
+        group.querySelector('.site-submenu-toggle').setAttribute('aria-expanded', String(expanded));
+    }
+
+    function closeSubmenus(except) {
+        groups.forEach(group => {
+            if (group !== except) setSubmenu(group, false);
+        });
+    }
+
+    groups.forEach(group => {
+        const toggle = group.querySelector('.site-submenu-toggle');
+        const submenu = group.querySelector('.site-submenu');
+        const open = () => {
+            closeSubmenus(group);
+            setSubmenu(group, true);
+        };
+        toggle.addEventListener('click', () => {
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            closeSubmenus();
+            setSubmenu(group, !expanded);
+        });
+        group.addEventListener('pointerenter', event => {
+            if (desktop.matches && event.pointerType === 'mouse') open();
+        });
+        group.addEventListener('pointerleave', event => {
+            if (event.pointerType === 'mouse' && !group.contains(document.activeElement)) setSubmenu(group, false);
+        });
+        group.addEventListener('focusout', event => {
+            if (!group.contains(event.relatedTarget)) setSubmenu(group, false);
+        });
+        group.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' && !submenu.contains(event.target)) {
+                event.preventDefault();
+                open();
+                submenu.querySelector('a').focus();
+            }
+            if (event.key === 'Escape' && !submenu.hidden) {
+                event.preventDefault();
+                event.stopPropagation();
+                setSubmenu(group, false);
+                toggle.focus();
+            }
+        });
+        setSubmenu(group, false);
+        toggle.hidden = false;
+    });
+
+    document.addEventListener('click', event => {
+        if (!groups.some(group => group.contains(event.target))) closeSubmenus();
+    });
+
+    // Keep visibility and the button's announced state together.
+    function setExpanded(expanded) {
+        if (!expanded) closeSubmenus();
+        header.dataset.menuOpen = String(expanded);
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', expanded ? 'Close navigation' : 'Open navigation');
+    }
+
+    button.addEventListener('click', () => {
+        setExpanded(button.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // Close navigation before following its destination.
+    links.addEventListener('click', event => {
+        if (event.target.closest('a')) setExpanded(false);
+    });
+
+    // Return focus to the menu button when Escape closes the list.
+    header.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+        event.preventDefault();
+        setExpanded(false);
+        button.focus();
+    });
+
+    // Keep focus out of links that become collapsed after resizing.
+    desktop.addEventListener('change', () => {
+        if (!desktop.matches && links.contains(document.activeElement)) button.focus();
+        else groups.forEach(group => {
+            if (group.querySelector('.site-submenu').contains(document.activeElement)) group.querySelector('.site-submenu-toggle').focus();
+        });
+        setExpanded(false);
+    });
+
+    // Move keyboard focus as well as the scroll position past navigation.
+    header.querySelector('.site-skip-link')?.addEventListener('click', () => {
+        setExpanded(false);
+        document.getElementById('main-content')?.focus({ preventScroll: true });
+    });
+
+    setExpanded(false);
+    header.dataset.menuReady = 'true';
+    button.hidden = false;
+    document.dispatchEvent(new Event('site-header-ready'));
+})();
+</script>
+
+    <main id="main-content" tabindex="-1" class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-crimson dark:text-green">Logistic Map</h1>
+            <p class="text-xl mt-3 opacity-70">Bifurcation theory</p>
+        </header>
+        <div class="flex justify-end items-center mb-8">
+            <div class="flex space-x-4 text-[10px] font-bold uppercase tracking-widest opacity-60">
+                <button id="expand-all" class="hover:text-crimson dark:hover:text-green transition underline underline-offset-4">Expand All</button>
+                <span>/</span>
+                <button id="collapse-all" class="hover:text-crimson dark:hover:text-green transition underline underline-offset-4">Collapse All</button>
+            </div>
+        </div>
+
+        <section class="bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden" aria-label="Logistic Map calculator">
+<div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    
+                    <div class="w-full flex flex-col items-center mb-8 gap-4">
+                        <div class="w-full h-64 bg-white rounded-xl border border-black/10 overflow-hidden shadow-inner relative plot-shell">
+                            <canvas id="timeSeriesCanvas" width="800" height="300" class="w-full h-full block" role="img" aria-label="Logistic map population over time" aria-describedby="logistic-description"></canvas>
+                        </div>
+                        
+                        <div class="w-full h-64 bg-white rounded-xl border border-black/10 overflow-hidden shadow-inner relative plot-shell">
+                            <canvas id="bifurcationCanvas" width="800" height="300" class="w-full h-full block" role="img" aria-label="Logistic map bifurcation diagram" aria-describedby="logistic-description"></canvas>
+                        </div>
+
+                        <div class="flex flex-col gap-y-8 mt-6 w-full p-6 md:p-8 bg-slate-50 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 app-controls">
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full items-center">
+                                <button id="btn-play-pause" class="sim-btn w-full uppercase tracking-widest">Play</button>
+                                <button id="btn-reset" class="sim-btn w-full uppercase tracking-widest">Reset</button>
+                                <button id="btn-step" class="sim-btn w-full uppercase tracking-widest">Step</button>
+                                
+                                <div class="flex items-center justify-center gap-2 w-full h-full py-2.5 bg-transparent border border-transparent rounded-lg">
+                                    <label class="text-[10px] font-bold uppercase tracking-widest opacity-60">Step:</label>
+                                    <input type="number" id="step-size" min="0.001" max="1.0" step="0.001" value="0.050" class="w-16 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none focus:border-crimson dark:focus:border-green text-xs font-bold transition-colors" aria-label="Step">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+                                <div class="flex flex-col items-center w-full">
+                                    <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
+                                        Growth Rate (r): 
+                                        <input type="number" id="r-val" min="0" max="4" step="0.001" value="2.000" class="w-16 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none focus:border-crimson dark:focus:border-green transition-colors">
+                                    </label>
+                                    <input type="range" id="r-slider" min="0" max="4" step="0.001" value="2.0" class="w-10/12 max-w-xs accent-crimson dark:accent-green" aria-label="Growth Rate (r)">
+                                </div>
+
+                                <div class="flex flex-col items-center w-full">
+                                    <label class="text-xs font-bold uppercase tracking-widest opacity-80 mb-3 flex items-center gap-2">
+                                        Initial Pop (x₀): 
+                                        <input type="number" id="x0-val" min="0.01" max="0.99" step="0.01" value="0.50" class="w-14 bg-transparent border-b border-black/20 dark:border-white/20 text-crimson dark:text-green text-center focus:outline-none focus:border-crimson dark:focus:border-green transition-colors">
+                                    </label>
+                                    <input type="range" id="x0-slider" min="0.01" max="0.99" step="0.01" value="0.5" class="w-10/12 max-w-xs accent-crimson dark:accent-green" aria-label="Initial Pop (x₀)">
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest opacity-70">
+                                <h2>Description</h2>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs" aria-hidden="true">↓</span>
+                            </summary>
+                            <div class="px-6 py-4 text-sm text-black/80 dark:text-white/80 border-t border-black/5 dark:border-white/5">
+                                <p class="mb-4" id="logistic-description">
+                                    The logistic map is a simple example of how chaos can form from very simple non-linear equations. While it is famous in physics for providing a qualitative map of the transition from order to chaos, its origins are rooted in biology. In the mid-1970s, biologist Robert May popularized this equation as a discrete-time model for animal populations. The variable x represents the population at a given time, scaled between 0 (extinction) and 1 (maximum carrying capacity). The equation x_n+1 = r * x_n * (1 - x_n) works through a simple feedback loop:
+                                </p>
+                                <ul class="list-disc list-inside space-y-2 mb-4 ml-2">
+                                    <li>Growth (r * x_n): This represents the birth rate. When the population is small, it grows proportionally to how many individuals are already there.</li>
+                                    <li>Starvation (1 - x_n): This represents the "limiting factor," such as food scarcity or disease. As the population x approaches 1 (the environment's limit), this term approaches zero, slowing down or crashing the population.</li>
+                                </ul>
+                                <p class="mb-4">
+                                    May’s breakthrough was showing that a single, deterministic biological rule could lead to stable equilibriums, predictable cycles, or total, unpredictable chaos just by changing the growth rate.
+                                </p>
+                                <p class="mb-4">
+                                    Its relation to fluids is that it is a simple handy comparison with laminar and turbulent flows. The growth rate parameter r acts as a mathematical proxy for the Reynolds number. Just as increasing the Reynolds number pushes a fluid from a steady, predictable state toward total chaos, increasing r drives the map through distinct phases:
+                                </p>
+                                <ul class="list-disc list-inside space-y-2 mb-4 ml-2">
+                                    <li>Steady State (r &lt; 3): This represents laminar flow. No matter where the population starts, the system eventually settles into a single, stable value.</li>
+                                    <li>Periodic Oscillation (3 &lt; r &lt; 3.57): As r increases, the system undergoes "period-doubling." The value begins to bounce between two points, then four, then eight. In fluid terms, this is analogous to the onset of instabilities, like the rhythmic shedding of vortices in a von Karman vortex street.</li>
+                                    <li>Deterministic Chaos (r &gt; 3.57): The system enters a regime of turbulence. The values appear random and never repeat, yet they are governed by a strictly deterministic equation, like the Navier-Stokes equations.</li>
+                                </ul>
+                                <p>
+                                    In the turbulent phase, two starting values, which we can consider some arbitrary initial fluid conditions that differ by even a microscopic amount, will eventually diverge into completely different paths. This sensitivity is exactly why predicting high-Reynolds number turbulent flows is so difficult. Small errors in the initial state can lead to vastly different results over time.
+                                </p>
+                            </div>
+                        </details>
+
+                        <details class="group/sub bg-white/50 dark:bg-black/20 rounded-xl overflow-hidden transition-all border border-black/5 dark:border-white/5">
+                            <summary class="flex items-center justify-between px-5 py-3 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest opacity-70">
+                                <h2>References</h2>
+                                <span class="group-open/sub:rotate-180 transition-transform text-xs" aria-hidden="true">↓</span>
+                            </summary>
+                            <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                                <ul class="space-y-3">
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Logistic_map" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Logistic Map</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Bifurcation_theory" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Bifurcation Theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Bifurcation_diagram" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Bifurcation Diagrams</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Pitchfork_bifurcation" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia: Pitchfork Bifurcations</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://math.libretexts.org/Bookshelves/Differential_Equations/Applied_Linear_Algebra_and_Differential_Equations_(Chasnov)/03%3A_III._Differential_Equations/11%3A_Nonlinear_Differential_Equations/11.02%3A_Bifurcation_Theory" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">LibreTexts: Bifurcation Theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://mathworld.wolfram.com/LogisticMap.html" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wolfram: Logistic Map</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://geoffboeing.com/2015/03/chaos-theory-logistic-map/" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">An Article on chaos theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://blbadger.github.io/logistic-map.html" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">A more in depth discussion on bifurcation theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://github.com/jonnyhyman/Chaos/tree/masterdraz" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">GitHub: Logistic Map Code</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.youtube.com/watch?v=ovJcsL7vyk" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Veritasium Video on Chaos Theory</a>
+                                    </li>
+                                    <li>
+                                        <a href="https://www.cambridge.org/core/books/hydrodynamic-stability/A0E78BC88D5572AED79CCCE8B977707C" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Hydrodynamic Stability by the GOATs Drazin and Reid</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+        </section>
+    </main>
+
+    <footer class="fixed bottom-2 right-6 z-10 site-footer">
+        <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
+            © <span data-current-year>2026</span> Ryan Myers. Code under MIT.
+        </p>
+    </footer>
+
+</body>
+</html>

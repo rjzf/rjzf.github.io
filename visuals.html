@@ -3,128 +3,277 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Visuals | Ryan J. Myers</title>
+    <title>Instability | Ryan J. Myers</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        })();
-    </script>
-  <script type="module" crossorigin src="./assets/main-er4Udof-.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-D6oyqzTK.css">
+    
+    <script data-site-theme>
+// Apply the saved theme before page content is displayed.
+(() => {
+    const root = document.documentElement;
+    if (root.dataset.themeReady === 'true') return;
+
+    let savedTheme;
+    try {
+        savedTheme = localStorage.getItem('theme');
+    } catch {
+        savedTheme = null;
+    }
+
+    const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    let userOverride = savedTheme === 'light' || savedTheme === 'dark';
+    const preferredDark = systemTheme?.matches ?? false;
+    const initialDark = savedTheme === 'dark' || (savedTheme !== 'light' && preferredDark);
+
+    // Announce the action available from the theme button.
+    function updateButton() {
+        const label = root.classList.contains('dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        document.getElementById('theme-toggle')?.setAttribute('aria-label', label);
+    }
+
+    root.classList.toggle('dark', initialDark);
+    root.dataset.themeReady = 'true';
+
+    // Handle clicks independently of header and application startup.
+    document.addEventListener('click', event => {
+        const button = event.target.closest?.('.site-header #theme-toggle');
+        if (!button) return;
+        const dark = !root.classList.contains('dark');
+        userOverride = true;
+        root.classList.toggle('dark', dark);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+        try {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        } catch {
+            // Keep the current page usable when preferences cannot be saved.
+        }
+    });
+
+    // Follow system changes until the user chooses a theme.
+    systemTheme?.addEventListener('change', event => {
+        if (userOverride) return;
+        root.classList.toggle('dark', event.matches);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+    });
+    document.addEventListener('site-header-ready', updateButton);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateButton, { once: true });
+    } else {
+        updateButton();
+    }
+})();
+</script>
+    <meta http-equiv="refresh" content="0; url=./instability.html">
+  <link rel="stylesheet" crossorigin href="./assets/style-DKSny-RA.css">
 </head>
-<body class="font-academic bg-white text-black dark:bg-black dark:text-white h-screen overflow-hidden transition-colors duration-300">
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
 
-    <div class="fixed top-0 left-0 w-full h-full z-[-2] overflow-hidden">
-        <video id="bg-video" autoplay muted loop playsinline class="w-full h-full object-cover opacity-45 grayscale">
-            <source src="./background.mp4" type="video/mp4">
-        </video>
-        <div class="absolute top-0 left-0 w-full h-full bg-white/10 dark:bg-black/30"></div>
+    <style>
+    /* Keep desktop arrows out of view until keyboard focus needs them. */
+    @media (min-width: 80rem) {
+        .site-header .site-nav-group > .site-nav-link { padding-right: .75rem; }
+        .site-header .site-submenu-toggle:not(:focus-visible) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+</style>
+<nav class="site-header top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5" data-position="sticky" aria-label="Primary navigation">
+    <a href="#main-content" class="site-skip-link">Skip to content</a>
+    <div class="site-header-bar">
+        <div class="site-brand">
+            <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
+                Ryan J. Myers
+            </a>
+        </div>
+
+        <div class="site-menu-control">
+            <button id="menu-toggle" type="button" aria-label="Open navigation" aria-controls="mobile-menu" aria-expanded="false" class="h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all" hidden>
+                <span class="text-2xl" aria-hidden="true">☰</span>
+            </button>
+        </div>
+
+        <div class="site-theme-control">
+            <button id="theme-toggle" type="button" aria-label="Switch color theme" class="group h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
+                <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]" aria-hidden="true">💡</span>
+                <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity" aria-hidden="true">💡</span>
+            </button>
+        </div>
+        <!-- Edit this list to update navigation on every page. -->
+        <ul id="mobile-menu" class="site-nav-links bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
+            <li><a href="./index.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Home</a></li>
+            <li><a href="./about.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">About</a></li>
+            <li class="site-nav-group">
+                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="location">Instability</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Instability pages" aria-controls="instability-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="instability-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
+                    <li><a class="site-submenu-link" href="./rayleigh-taylor.html">Rayleigh-Taylor</a></li>
+                </ul>
+            </li>
+            <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
+            <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
+            <li class="site-nav-group">
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Sandbox</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="sandbox-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./logistic-map.html">Logistic Map</a></li>
+                    <li><a class="site-submenu-link" href="./plinko.html">Plinko</a></li>
+                    <li><a class="site-submenu-link" href="./black-scholes.html">Black-Scholes-Merton Model</a></li>
+                </ul>
+            </li>
+            <li><a href="./other.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Other</a></li>
+        </ul>
     </div>
+</nav>
+<script data-site-header>
+// Connect navigation without waiting for any application modules.
+(() => {
+    const header = document.querySelector('.site-header');
+    const button = header?.querySelector('#menu-toggle');
+    const links = header?.querySelector('#mobile-menu');
+    if (!button || !links || header.dataset.menuReady === 'true') return;
 
-    <nav class="fixed top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5">
-        <div class="relative flex items-center justify-between px-6 md:px-12 h-16 w-full">
-            <div class="z-10">
-                <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
-                    Ryan J. Myers
-                </a>
-            </div>
+    // Keep footer years current without changing their appearance.
+    function updateFooterYear() {
+        const year = String(new Date().getFullYear());
+        document.querySelectorAll('[data-current-year]').forEach(element => {
+            element.textContent = year;
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateFooterYear, { once: true });
+    else updateFooterYear();
+    window.addEventListener('pageshow', updateFooterYear);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) updateFooterYear();
+    });
 
-            <div class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
-                <div class="hidden md:flex items-center space-x-1 text-base font-semibold uppercase tracking-widest">
-                    <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Home</a>
-                    <a href="./about.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">About</a>
-                    <a href="./pipe-flow.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Pipe Flow</a>
-                    <a href="./shock-tube.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Shock Tube</a>
-                    <a href="./sandbox.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Sandbox</a>
-                    <a href="./visuals.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-crimson dark:text-green transition-all">Visuals</a>
-                    <a href="./other.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-all">Other</a>
-                </div>
-                <button id="menu-toggle" class="md:hidden h-10 w-52 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
-                    <span class="text-2xl">☰</span>
-                </button>
-            </div>
+    const desktop = window.matchMedia('(min-width: 80rem)');
 
-            <div class="z-10">
-                <button id="theme-toggle" class="group h-10 w-10 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all focus:outline-none">
-                    <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]">💡</span>
-                    <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity">💡</span>
-                </button>
-            </div>
-        </div>
+    const groups = [...header.querySelectorAll('.site-nav-group')];
 
-        <div id="mobile-menu" class="hidden md:hidden w-full bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
-            <div class="px-6 py-12 flex flex-col items-center justify-center space-y-8 text-2xl font-bold uppercase tracking-[0.3em] text-black dark:text-white">
-                <a href="./index.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Home</a>
-                <a href="./about.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">About</a>
-                <a href="./pipe-flow.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Pipe Flow</a>
-                <a href="./shock-tube.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Shock Tube</a>
-                <a href="./sandbox.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Sandbox</a>
-                <a href="./visuals.html" class="text-crimson dark:text-green hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Visuals</a>
-                <a href="./other.html" class="hover:bg-slate-200 dark:hover:bg-white/20 px-6 py-2 rounded-xl transition-all">Other</a>
-            </div>
-        </div>
-    </nav>
+    // Show one submenu and keep its disclosure state in sync.
+    function setSubmenu(group, expanded) {
+        group.querySelector('.site-submenu').hidden = !expanded;
+        group.querySelector('.site-submenu-toggle').setAttribute('aria-expanded', String(expanded));
+    }
 
-    <main class="h-full flex flex-col justify-center items-center px-6">
-        <div class="w-full max-w-5xl p-8 md:p-16 bg-white dark:bg-black rounded-[3rem] shadow-2xl text-center border border-black/5 dark:border-white/5">
-            <h1 class="text-6xl md:text-9xl font-extrabold mb-8 tracking-tighter text-crimson dark:text-green">
-                Visuals
-            </h1>
-            <p class="text-lg md:text-3xl text-black dark:text-white max-w-3xl mx-auto leading-relaxed mb-12 opacity-60 italic">
-                Work in Progress
-            </p>
-            
-            <div class="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 w-full max-w-4xl mx-auto">
-                <a href="./index.html" class="block w-full md:w-auto py-4 px-12 md:px-32 bg-crimson text-white dark:bg-green dark:text-black font-bold text-2xl md:text-3xl rounded-full shadow-2xl hover:-translate-y-1 transition-all duration-300 text-center">
-                    Return Home
-                </a>
-            </div>
-        </div>
+    function closeSubmenus(except) {
+        groups.forEach(group => {
+            if (group !== except) setSubmenu(group, false);
+        });
+    }
 
-        <footer class="fixed bottom-4 left-6 right-6 z-10 flex flex-col md:flex-row justify-between items-center gap-3">
-            <div class="order-1 md:order-1">
-                <button id="video-toggle" class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity whitespace-nowrap focus:outline-none flex items-center gap-2">
-                    <i class="fa-solid fa-pause text-xs"></i> <span id="video-toggle-text">Pause</span>
-                </button>
-            </div>
-            
-            <div class="order-2 md:order-2">
-                <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity cursor-default text-center md:text-right">
-                    © 2026 Ryan Myers. Code under MIT. | 
-                    <a href="https://www.vecteezy.com/video/35908500-smoke-effect-with-black-background" target="_blank" rel="noopener" class="underline hover:text-crimson dark:hover:text-green transition-colors">Background Credit</a>
-                </p>
-            </div>
-        </footer>
-    </main>
-
-    <script>
-        const bgVideo = document.getElementById('bg-video');
-        const videoToggle = document.getElementById('video-toggle');
-        const videoToggleText = document.getElementById('video-toggle-text');
-        const videoToggleIcon = videoToggle.querySelector('i');
-
-        videoToggle.addEventListener('click', () => {
-            if (bgVideo.paused) {
-                bgVideo.play();
-                videoToggleText.textContent = 'Pause';
-                videoToggleIcon.classList.replace('fa-play', 'fa-pause');
-            } else {
-                bgVideo.pause();
-                videoToggleText.textContent = 'Play';
-                videoToggleIcon.classList.replace('fa-pause', 'fa-play');
+    groups.forEach(group => {
+        const toggle = group.querySelector('.site-submenu-toggle');
+        const submenu = group.querySelector('.site-submenu');
+        const open = () => {
+            closeSubmenus(group);
+            setSubmenu(group, true);
+        };
+        toggle.addEventListener('click', () => {
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            closeSubmenus();
+            setSubmenu(group, !expanded);
+        });
+        group.addEventListener('pointerenter', event => {
+            if (desktop.matches && event.pointerType === 'mouse') open();
+        });
+        group.addEventListener('pointerleave', event => {
+            if (event.pointerType === 'mouse' && !group.contains(document.activeElement)) setSubmenu(group, false);
+        });
+        group.addEventListener('focusout', event => {
+            if (!group.contains(event.relatedTarget)) setSubmenu(group, false);
+        });
+        group.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' && !submenu.contains(event.target)) {
+                event.preventDefault();
+                open();
+                submenu.querySelector('a').focus();
+            }
+            if (event.key === 'Escape' && !submenu.hidden) {
+                event.preventDefault();
+                event.stopPropagation();
+                setSubmenu(group, false);
+                toggle.focus();
             }
         });
-    </script>
+        setSubmenu(group, false);
+        toggle.hidden = false;
+    });
+
+    document.addEventListener('click', event => {
+        if (!groups.some(group => group.contains(event.target))) closeSubmenus();
+    });
+
+    // Keep visibility and the button's announced state together.
+    function setExpanded(expanded) {
+        if (!expanded) closeSubmenus();
+        header.dataset.menuOpen = String(expanded);
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', expanded ? 'Close navigation' : 'Open navigation');
+    }
+
+    button.addEventListener('click', () => {
+        setExpanded(button.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // Close navigation before following its destination.
+    links.addEventListener('click', event => {
+        if (event.target.closest('a')) setExpanded(false);
+    });
+
+    // Return focus to the menu button when Escape closes the list.
+    header.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+        event.preventDefault();
+        setExpanded(false);
+        button.focus();
+    });
+
+    // Keep focus out of links that become collapsed after resizing.
+    desktop.addEventListener('change', () => {
+        if (!desktop.matches && links.contains(document.activeElement)) button.focus();
+        else groups.forEach(group => {
+            if (group.querySelector('.site-submenu').contains(document.activeElement)) group.querySelector('.site-submenu-toggle').focus();
+        });
+        setExpanded(false);
+    });
+
+    // Move keyboard focus as well as the scroll position past navigation.
+    header.querySelector('.site-skip-link')?.addEventListener('click', () => {
+        setExpanded(false);
+        document.getElementById('main-content')?.focus({ preventScroll: true });
+    });
+
+    setExpanded(false);
+    header.dataset.menuReady = 'true';
+    button.hidden = false;
+    document.dispatchEvent(new Event('site-header-ready'));
+})();
+</script>
+
+    <main id="main-content" tabindex="-1" class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
+        <h1 class="text-4xl font-bold mb-6 text-crimson dark:text-green">Instability</h1>
+        <a href="./instability.html" class="underline underline-offset-4">Continue to Instability</a>
+    </main>
+
+    <footer class="fixed bottom-2 right-6 z-10 site-footer">
+        <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
+            © <span data-current-year>2026</span> Ryan Myers. Code under MIT.
+        </p>
+    </footer>
+
+
 </body>
 </html>

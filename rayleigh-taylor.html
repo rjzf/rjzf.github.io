@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rayleigh-Taylor | Ryan J. Myers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script data-site-theme>
+// Apply the saved theme before page content is displayed.
+(() => {
+    const root = document.documentElement;
+    if (root.dataset.themeReady === 'true') return;
+
+    let savedTheme;
+    try {
+        savedTheme = localStorage.getItem('theme');
+    } catch {
+        savedTheme = null;
+    }
+
+    const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    let userOverride = savedTheme === 'light' || savedTheme === 'dark';
+    const preferredDark = systemTheme?.matches ?? false;
+    const initialDark = savedTheme === 'dark' || (savedTheme !== 'light' && preferredDark);
+
+    // Announce the action available from the theme button.
+    function updateButton() {
+        const label = root.classList.contains('dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        document.getElementById('theme-toggle')?.setAttribute('aria-label', label);
+    }
+
+    root.classList.toggle('dark', initialDark);
+    root.dataset.themeReady = 'true';
+
+    // Handle clicks independently of header and application startup.
+    document.addEventListener('click', event => {
+        const button = event.target.closest?.('.site-header #theme-toggle');
+        if (!button) return;
+        const dark = !root.classList.contains('dark');
+        userOverride = true;
+        root.classList.toggle('dark', dark);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+        try {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        } catch {
+            // Keep the current page usable when preferences cannot be saved.
+        }
+    });
+
+    // Follow system changes until the user chooses a theme.
+    systemTheme?.addEventListener('change', event => {
+        if (userOverride) return;
+        root.classList.toggle('dark', event.matches);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+    });
+    document.addEventListener('site-header-ready', updateButton);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateButton, { once: true });
+    } else {
+        updateButton();
+    }
+})();
+</script>
+    <style>
+        /* Use one disclosure marker across browsers. */
+        .instability-notes summary::-webkit-details-marker { display: none; }
+        /* Keep the controls and viewer local to this page. */
+        section.rt-app { grid-template-columns: 18rem minmax(0, 1fr); }
+        .rt-app .rt-controls { grid-column: 1; grid-row: 1; }
+        .rt-app .rt-view { grid-column: 2; grid-row: 1; width: 100%; min-width: 0; }
+        .rt-view #rt-canvas { flex: none; width: 100%; max-width: none; aspect-ratio: 1 / 3; border-color: #888; }
+        .rt-viewport { width: 100%; max-height: 72svh; overflow: auto; }
+        .rt-stage { display: flex; justify-content: center; width: -moz-max-content; width: max-content; min-width: 100%; }
+        .rt-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem .75rem; border: 0; padding: 0; margin: 0; min-width: 0; }
+        .rt-wide { grid-column: 1 / -1; }
+        .rt-controls .rt-fields label { font-size: .9rem; margin-bottom: .3rem; }
+        .rt-fields label output { float: right; font-variant-numeric: tabular-nums; }
+        .rt-fields input[type="range"], #rt-scrub { width: 100%; accent-color: var(--site-accent); }
+        .rt-fields input[type="range"] { display: block; margin: 0; }
+        .rt-fields .rt-setting { margin: -.25rem 0 0; font-size: .9rem; }
+        .rt-controls select, .rt-controls input[type="number"], #rt-zoom { width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid #888; border-radius: .4rem; background: white; color: black; font: inherit; font-size: .95rem; }
+        .dark .rt-controls input[type="number"], .dark #rt-zoom { background: #171719; color: white; }
+        .rt-fields input[aria-invalid="true"] { border-color: #bb2323; }
+        .dark .rt-fields input[aria-invalid="true"] { border-color: #ff9292; }
+        #rt-pending, #rt-memory-limit, #rt-input-error { font-size: .85rem; margin-top: .5rem; }
+        #rt-input-error { color: #a21a1a; }
+        .dark #rt-input-error { color: #ff9292; }
+        /* Align the history readouts below the slider. */
+        .rt-history-info { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .5rem .75rem; margin-top: .5rem; }
+        .rt-view .rt-history-info p { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+        .rt-history-info #rt-history-end, .rt-history-info .rt-memory { text-align: right; font-size: .85rem; }
+        .rt-toolbar .rt-actions { margin-bottom: .75rem; }
+        .rt-display-options { display: grid; grid-template-columns: minmax(0, 1fr) 5rem; gap: .75rem; align-items: center; margin-bottom: .75rem; }
+        .rt-display-options label { justify-self: end; font-size: .9rem; font-weight: 700; }
+        .rt-playback { margin-top: .5rem; font-variant-numeric: tabular-nums; }
+        .rt-playback .rt-clock { margin-top: .5rem; align-items: center; flex-wrap: wrap; }
+        #rt-view-state { opacity: .7; margin-left: auto; font-size: .85rem; }
+        #rt-live, #rt-advance { min-height: 2.75rem; padding: .35rem .65rem; border: 1px solid var(--site-accent); border-radius: .4rem; font-weight: 700; }
+        #rt-live:disabled, #rt-scrub:disabled, #rt-advance:disabled { opacity: .4; cursor: default; }
+        #rt-saved { font-size: .85rem; opacity: .75; }
+        .rt-app :is(button, select, input, summary, [tabindex]):focus-visible { outline: 2px solid var(--site-accent); outline-offset: 3px; }
+        .rt-view #rt-status { font-size: .9rem; margin-top: .5rem; }
+        .rt-advanced { border-top: 1px solid rgb(127 127 127 / .4); padding-top: .75rem; }
+        .rt-advanced summary { cursor: pointer; font-weight: 700; min-height: 2.75rem; padding: .5rem 0; }
+        .rt-advanced .rt-fields { margin-top: .5rem; }
+        .rt-app [hidden] { display: none; }
+        @media (max-width: 48rem) {
+            section.rt-app { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+            .rt-app .rt-view { grid-column: 1; grid-row: 1; }
+            .rt-app .rt-controls { grid-column: 1; grid-row: 2; }
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/rayleighTaylor-BRUEDVCk.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-Ke7zwH0v.js">
+  <link rel="stylesheet" crossorigin href="./assets/style-DKSny-RA.css">
+</head>
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
+
+    <style>
+    /* Keep desktop arrows out of view until keyboard focus needs them. */
+    @media (min-width: 80rem) {
+        .site-header .site-nav-group > .site-nav-link { padding-right: .75rem; }
+        .site-header .site-submenu-toggle:not(:focus-visible) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+</style>
+<nav class="site-header top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5" data-position="sticky" aria-label="Primary navigation">
+    <a href="#main-content" class="site-skip-link">Skip to content</a>
+    <div class="site-header-bar">
+        <div class="site-brand">
+            <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
+                Ryan J. Myers
+            </a>
+        </div>
+
+        <div class="site-menu-control">
+            <button id="menu-toggle" type="button" aria-label="Open navigation" aria-controls="mobile-menu" aria-expanded="false" class="h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all" hidden>
+                <span class="text-2xl" aria-hidden="true">☰</span>
+            </button>
+        </div>
+
+        <div class="site-theme-control">
+            <button id="theme-toggle" type="button" aria-label="Switch color theme" class="group h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
+                <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]" aria-hidden="true">💡</span>
+                <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity" aria-hidden="true">💡</span>
+            </button>
+        </div>
+        <!-- Edit this list to update navigation on every page. -->
+        <ul id="mobile-menu" class="site-nav-links bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
+            <li><a href="./index.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Home</a></li>
+            <li><a href="./about.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">About</a></li>
+            <li class="site-nav-group">
+                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="location">Instability</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Instability pages" aria-controls="instability-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="instability-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
+                    <li><a class="site-submenu-link" href="./rayleigh-taylor.html" aria-current="page">Rayleigh-Taylor</a></li>
+                </ul>
+            </li>
+            <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
+            <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
+            <li class="site-nav-group">
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Sandbox</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="sandbox-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./logistic-map.html">Logistic Map</a></li>
+                    <li><a class="site-submenu-link" href="./plinko.html">Plinko</a></li>
+                    <li><a class="site-submenu-link" href="./black-scholes.html">Black-Scholes-Merton Model</a></li>
+                </ul>
+            </li>
+            <li><a href="./other.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Other</a></li>
+        </ul>
+    </div>
+</nav>
+<script data-site-header>
+// Connect navigation without waiting for any application modules.
+(() => {
+    const header = document.querySelector('.site-header');
+    const button = header?.querySelector('#menu-toggle');
+    const links = header?.querySelector('#mobile-menu');
+    if (!button || !links || header.dataset.menuReady === 'true') return;
+
+    // Keep footer years current without changing their appearance.
+    function updateFooterYear() {
+        const year = String(new Date().getFullYear());
+        document.querySelectorAll('[data-current-year]').forEach(element => {
+            element.textContent = year;
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateFooterYear, { once: true });
+    else updateFooterYear();
+    window.addEventListener('pageshow', updateFooterYear);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) updateFooterYear();
+    });
+
+    const desktop = window.matchMedia('(min-width: 80rem)');
+
+    const groups = [...header.querySelectorAll('.site-nav-group')];
+
+    // Show one submenu and keep its disclosure state in sync.
+    function setSubmenu(group, expanded) {
+        group.querySelector('.site-submenu').hidden = !expanded;
+        group.querySelector('.site-submenu-toggle').setAttribute('aria-expanded', String(expanded));
+    }
+
+    function closeSubmenus(except) {
+        groups.forEach(group => {
+            if (group !== except) setSubmenu(group, false);
+        });
+    }
+
+    groups.forEach(group => {
+        const toggle = group.querySelector('.site-submenu-toggle');
+        const submenu = group.querySelector('.site-submenu');
+        const open = () => {
+            closeSubmenus(group);
+            setSubmenu(group, true);
+        };
+        toggle.addEventListener('click', () => {
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            closeSubmenus();
+            setSubmenu(group, !expanded);
+        });
+        group.addEventListener('pointerenter', event => {
+            if (desktop.matches && event.pointerType === 'mouse') open();
+        });
+        group.addEventListener('pointerleave', event => {
+            if (event.pointerType === 'mouse' && !group.contains(document.activeElement)) setSubmenu(group, false);
+        });
+        group.addEventListener('focusout', event => {
+            if (!group.contains(event.relatedTarget)) setSubmenu(group, false);
+        });
+        group.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' && !submenu.contains(event.target)) {
+                event.preventDefault();
+                open();
+                submenu.querySelector('a').focus();
+            }
+            if (event.key === 'Escape' && !submenu.hidden) {
+                event.preventDefault();
+                event.stopPropagation();
+                setSubmenu(group, false);
+                toggle.focus();
+            }
+        });
+        setSubmenu(group, false);
+        toggle.hidden = false;
+    });
+
+    document.addEventListener('click', event => {
+        if (!groups.some(group => group.contains(event.target))) closeSubmenus();
+    });
+
+    // Keep visibility and the button's announced state together.
+    function setExpanded(expanded) {
+        if (!expanded) closeSubmenus();
+        header.dataset.menuOpen = String(expanded);
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', expanded ? 'Close navigation' : 'Open navigation');
+    }
+
+    button.addEventListener('click', () => {
+        setExpanded(button.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // Close navigation before following its destination.
+    links.addEventListener('click', event => {
+        if (event.target.closest('a')) setExpanded(false);
+    });
+
+    // Return focus to the menu button when Escape closes the list.
+    header.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+        event.preventDefault();
+        setExpanded(false);
+        button.focus();
+    });
+
+    // Keep focus out of links that become collapsed after resizing.
+    desktop.addEventListener('change', () => {
+        if (!desktop.matches && links.contains(document.activeElement)) button.focus();
+        else groups.forEach(group => {
+            if (group.querySelector('.site-submenu').contains(document.activeElement)) group.querySelector('.site-submenu-toggle').focus();
+        });
+        setExpanded(false);
+    });
+
+    // Move keyboard focus as well as the scroll position past navigation.
+    header.querySelector('.site-skip-link')?.addEventListener('click', () => {
+        setExpanded(false);
+        document.getElementById('main-content')?.focus({ preventScroll: true });
+    });
+
+    setExpanded(false);
+    header.dataset.menuReady = 'true';
+    button.hidden = false;
+    document.dispatchEvent(new Event('site-header-ready'));
+})();
+</script>
+
+    <main id="main-content" tabindex="-1" class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full">
+        <h1 class="text-4xl md:text-5xl font-bold text-center mb-8 text-crimson dark:text-green">Rayleigh-Taylor</h1>
+        <section class="rt-app" aria-label="Rayleigh-Taylor simulation">
+            <div class="rt-view">
+                <div class="rt-toolbar">
+                    <div class="rt-actions">
+                        <button id="rt-run" type="button" aria-pressed="false" disabled>Run</button>
+                        <button id="rt-reset" type="button">Reset</button>
+                    </div>
+                    <div class="rt-display-options">
+                        <label for="rt-zoom">Zoom</label>
+                        <select id="rt-zoom" title="Change the display size without changing the simulation grid.">
+                            <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="rt-viewport" class="rt-viewport" tabindex="0" role="region" aria-label="Simulation view">
+                    <div class="rt-stage">
+                        <canvas id="rt-canvas" width="128" height="384" role="img" aria-label="Rayleigh-Taylor material field. Red is heavy material and blue is light material. Purple shows intermediate material fractions.">WebGL 2 is needed to display this simulation.</canvas>
+                    </div>
+                </div>
+                <div class="rt-playback">
+                    <div class="rt-clock"><span>t = <span id="rt-time">0.00</span></span><span id="rt-fps"></span></div>
+                    <div class="rt-clock">
+                        <button id="rt-advance" type="button" disabled title="Advance the live simulation to the next saved time, then pause.">Next snapshot</button>
+                        <span id="rt-view-state">Live</span>
+                        <button id="rt-live" type="button" disabled>Live</button>
+                    </div>
+                    <label for="rt-scrub" class="sr-only">Saved time</label>
+                    <input id="rt-scrub" type="range" min="0" max="0" step="1" value="0" disabled>
+                    <div class="rt-history-info">
+                        <p id="rt-saved">No snapshots</p>
+                        <p id="rt-history-end"></p>
+                        <p id="rt-status" role="status">Preparing simulation…</p>
+                        <p class="rt-memory" title="Estimated simulation and snapshot textures. Browser and graphics driver overhead is additional.">Estimated buffers <span id="rt-memory"></span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="rt-controls">
+                <fieldset id="rt-setup" class="rt-fields">
+                    <legend class="sr-only">Settings for the next run</legend>
+                    <div class="rt-wide">
+                        <label for="rt-resolution">Resolution</label>
+                        <select id="rt-resolution">
+                            <option value="64">Lowest (64 × 192)</option>
+                            <option value="128" selected>Low (128 × 384)</option>
+                            <option value="192">Medium (192 × 576)</option>
+                            <option value="256">High (256 × 768)</option>
+                            <option value="384">Highest (384 × 1152)</option>
+                        </select>
+                    </div>
+                    <div class="rt-wide">
+                        <label for="rt-width">Domain width</label>
+                        <select id="rt-width"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select>
+                    </div>
+                    <div class="rt-wide">
+                        <label for="rt-waves">Waves <output id="rt-waves-value" for="rt-waves">1</output></label>
+                        <input id="rt-waves" type="range" min="1" max="6" step="1" value="1">
+                        <p class="rt-setting">Wavelength <output id="rt-wavelength" for="rt-width rt-waves">1.000</output></p>
+                    </div>
+                    <div class="rt-wide">
+                        <label for="rt-atwood">Atwood number <output id="rt-atwood-value" for="rt-atwood">0.50</output></label>
+                        <input id="rt-atwood" type="range" min="0" max="0.8" step="0.01" value="0.5">
+                    </div>
+                    <div class="rt-wide">
+                        <label for="rt-amplitude">Amplitude / wavelength <output id="rt-amplitude-value" for="rt-amplitude">0.025</output></label>
+                        <input id="rt-amplitude" type="range" min="0" max="0.05" step="0.001" value="0.025">
+                    </div>
+                    <div class="rt-wide">
+                        <label for="rt-acceleration">Acceleration <output id="rt-acceleration-value" for="rt-acceleration">1.00</output></label>
+                        <input id="rt-acceleration" type="range" min="0" max="4" step="0.05" value="1" title="Unitless downward acceleration. Changes apply on reset.">
+                    </div>
+                    <div>
+                        <label id="rt-interval-label" for="rt-interval">Save every</label>
+                        <input id="rt-interval" type="number" min="0.01" max="1" step="any" value="0.25" inputmode="decimal" required title="Interval in simulated time, from 0.01 to 1.">
+                    </div>
+                    <div>
+                        <label id="rt-limit-label" for="rt-limit">Snapshots</label>
+                        <input id="rt-limit" type="number" min="2" max="50" step="1" value="30" inputmode="numeric" required title="Total saved states, including the initial state.">
+                    </div>
+                    <details class="rt-wide rt-advanced">
+                        <summary>Advanced options</summary>
+                        <div class="rt-fields">
+                            <div class="rt-wide">
+                                <label for="rt-arrangement">Heavy material</label>
+                                <select id="rt-arrangement"><option value="above">Above</option><option value="below">Below</option></select>
+                            </div>
+                            <div class="rt-wide">
+                                <label id="rt-viscosity-label" for="rt-viscosity">Viscosity</label>
+                                <select id="rt-viscosity" required title="Explicit velocity diffusion. Changes apply on reset.">
+                                    <option value="0">Inviscid (0.0000)</option>
+                                    <option value="0.0002" selected>Normal (0.0002)</option>
+                                    <option value="0.0004">Viscous (0.0004)</option>
+                                    <option value="0.001">Super viscous (0.001)</option>
+                                </select>
+                            </div>
+                            <div class="rt-wide">
+                                <label id="rt-thickness-label" for="rt-thickness">Interface width</label>
+                                <select id="rt-thickness" required title="Initial transition width: Sharp 0.015625, Normal 0.03125, Diffuse 0.0625. Changes apply on reset.">
+                                    <option value="0.015625">Sharp</option>
+                                    <option value="0.03125" selected>Normal</option>
+                                    <option value="0.0625">Diffuse</option>
+                                </select>
+                            </div>
+                        </div>
+                    </details>
+                </fieldset>
+                <p id="rt-pending" hidden>Changes apply on reset.</p>
+                <p id="rt-input-error" role="status" hidden></p>
+                <p id="rt-memory-limit" hidden></p>
+                <label for="rt-palette">Colors</label>
+                <select id="rt-palette">
+                    <option value="red-blue">Red / Blue</option>
+                    <option value="orange-blue">Orange / Blue</option>
+                    <option value="magenta-teal">Magenta / Teal</option>
+                    <option value="black-white">Black / White</option>
+                    <option value="navy-gold">Navy / Gold</option>
+                    <option value="purple-mint">Purple / Mint</option>
+                </select>
+                <div class="rt-legend" aria-label="Material colors">
+                    <span><i class="rt-heavy" aria-hidden="true"></i>Heavy</span>
+                    <span><i class="rt-mixed" aria-hidden="true"></i>Mixed</span>
+                    <span><i class="rt-light" aria-hidden="true"></i>Light</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Replace the placeholder text in each accordion. -->
+        <div class="instability-notes space-y-4 mt-8">
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">What is this?</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    <p class="mb-4">
+                        The Rayleigh-Taylor instability happens whenever a heavier fluid rests on top of a lighter fluid under gravity or an equivalent downward acceleration. The easiest physical example people often give is having water on top of oil in a cup. Gravity wants to drag the water down to the floor, while the lighter oil has to squeeze upward to get out of the way. If the boundary between them were mathematically flat with zero motion, it might sit there in an unstable balance. In the real world, even a microscopic ripple will trigger the flow to develop.
+                    </p>
+                    <p class="mb-4">
+                        As the heavy fluid drops and the light fluid rises, they form distinctive shapes. The falling heavy fluid punches downward in narrow fingers called spikes, while the rising light fluid floats upward in rounded structures called bubbles. As these features slide past each other, the speed difference along their edges creates shear. That shear triggers secondary rollups, which curl the tips of the spikes into a recognizable mushroom (think mushroom clouds from explosions). Instabilities are the onset of turbulence, so as it runs it will turn into a chaotic mess. Rayleigh-Taylor instabilities are seen in everything from astrophysics, meteorology, and even bioflows, and are really important for understanding the movement and mixing of fluids.
+                    </p>
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">How to use</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    <p class="mb-4">
+                        This tool lets you set up an initial domain of the instability and watch it evolve in real time. During the early stage of the instability, the height of the ripple grows exponentially according to linear stability theory.
+                    </p>
+                    <p class="my-6 text-center text-lg font-serif">
+                        <i>η</i>(<i>t</i>) = <i>η</i><sub>0</sub> exp(<span style="white-space: nowrap;">&radic;<span style="text-decoration: overline;">&nbsp;<i>A g k</i>&nbsp;</span></span> <i>t</i>)
+                    </p>
+                    <p class="mb-4">
+                        The starting disturbance height is <i>η</i><sub>0</sub>, and the term inside the square root controls how fast that ripple explodes. Here is how the main settings tie into that growth and the simulation grid.
+                    </p>
+                    <ul class="list-disc list-inside space-y-3 mb-6 ml-2">
+                        <li><strong>Atwood Number (A)</strong> sets the density difference between the materials. A value of 0 means both fluids share the same density, which gives zero growth. Higher values increase the growth rate and make the flow asymmetric, lower values have a decreased growth rate and are more symmetric.</li>
+                        <li><strong>Acceleration (g)</strong> controls the downward force pulling on the fluids. Stronger acceleration directly speeds up the instability growth.</li>
+                        <li><strong>Waves and Domain Width</strong> determine the wavenumber k = 2π / λ. Setting more waves packs shorter wavelengths into the domain. The linear growth equation shows that shorter wavelengths with higher k grow the fastest.</li>
+                        <li><strong>Amplitude</strong> sets the initial height (<i>η</i><sub>0</sub>) of the ripple. Larger values skip past the early linear predictions almost immediately, and quicken growth.</li>
+                        <li><strong>Interface Width</strong> softens the density jump across several cells. This naturally dampens ripples that are smaller than the transition layer itself.</li>
+                    </ul>
+                    <p>
+                        Hit Run to start the calculation, or use Next Snapshot to step forward by your chosen save interval. You can scrub through recorded snapshots using the slider to inspect earlier stages of the mixing layer, or switch back to Live and continue the run.
+                    </p>
+                </div>
+            </details>
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Resources</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="https://en.wikipedia.org/wiki/Rayleigh%E2%80%93Taylor_instability" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia page for the Rayleigh-Taylor instability</a>
+                        </li>
+                        <li>
+                            <a href="https://asmedigitalcollection.asme.org/fluidsengineering/article/142/12/120801/1086695/Rayleigh-Taylor-Instability-A-Status-Review-of" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Review paper of RTI Studies</a>
+                        </li>
+                        <li>
+                            <a href="https://www.sciencedirect.com/science/article/abs/pii/037015739190153D" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Review on Rayleigh-Taylor Theory</a>
+                        </li>
+                        <li>
+                            <a href="https://store.doverpublications.com/products/9780486640716" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Hydrodynamic and Hydromagnetic Stability by Chandrasekhar</a>
+                        </li>
+                        <li>
+                            <a href="https://www.cambridge.org/core/books/introduction-to-hydrodynamic-stability/52F918FA38D2984D4638F2D04C8CFA3A" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Introduction to Hydrodynamic Stability by Drazin</a>
+                        </li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+    </main>
+
+    <footer class="fixed bottom-2 right-6 z-10 site-footer">
+        <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
+            © <span data-current-year>2026</span> Ryan Myers. Code under MIT.
+        </p>
+    </footer>
+
+
+</body>
+</html>

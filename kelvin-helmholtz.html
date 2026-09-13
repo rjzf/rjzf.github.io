@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kelvin-Helmholtz | Ryan J. Myers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script data-site-theme>
+// Apply the saved theme before page content is displayed.
+(() => {
+    const root = document.documentElement;
+    if (root.dataset.themeReady === 'true') return;
+
+    let savedTheme;
+    try {
+        savedTheme = localStorage.getItem('theme');
+    } catch {
+        savedTheme = null;
+    }
+
+    const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    let userOverride = savedTheme === 'light' || savedTheme === 'dark';
+    const preferredDark = systemTheme?.matches ?? false;
+    const initialDark = savedTheme === 'dark' || (savedTheme !== 'light' && preferredDark);
+
+    // Announce the action available from the theme button.
+    function updateButton() {
+        const label = root.classList.contains('dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        document.getElementById('theme-toggle')?.setAttribute('aria-label', label);
+    }
+
+    root.classList.toggle('dark', initialDark);
+    root.dataset.themeReady = 'true';
+
+    // Handle clicks independently of header and application startup.
+    document.addEventListener('click', event => {
+        const button = event.target.closest?.('.site-header #theme-toggle');
+        if (!button) return;
+        const dark = !root.classList.contains('dark');
+        userOverride = true;
+        root.classList.toggle('dark', dark);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+        try {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        } catch {
+            // Keep the current page usable when preferences cannot be saved.
+        }
+    });
+
+    // Follow system changes until the user chooses a theme.
+    systemTheme?.addEventListener('change', event => {
+        if (userOverride) return;
+        root.classList.toggle('dark', event.matches);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+    });
+    document.addEventListener('site-header-ready', updateButton);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateButton, { once: true });
+    } else {
+        updateButton();
+    }
+})();
+</script>
+    <style>
+        /* Use one disclosure marker across browsers. */
+        .instability-notes summary::-webkit-details-marker { display: none; }
+        /* Reuse the instability appearance without changing shared styles. */
+        .kh-app { display: grid; grid-template-columns: 18rem minmax(0, 1fr); gap: 2rem; align-items: start; padding: clamp(1rem, 3vw, 2rem); border-radius: 1.5rem; background: rgb(0 0 0 / .025); border: 1px solid rgb(0 0 0 / .08); }
+        .dark .kh-app { background: rgb(255 255 255 / .04); border-color: rgb(255 255 255 / .1); }
+        .kh-app .kh-view { grid-column: 2; grid-row: 1; width: 100%; min-width: 0; justify-self: center; }
+        #kh-canvas { display: block; width: 100%; height: auto; max-width: none; aspect-ratio: 2 / 1; border: 1px solid #888; border-radius: .25rem; }
+        .kh-app .kh-controls { grid-column: 1; grid-row: 1; min-width: 0; font-size: 1rem; }
+        .kh-actions { display: flex; gap: .75rem; margin-bottom: 1.5rem; }
+        .kh-actions button { min-height: 2.75rem; flex: 1; border-radius: .6rem; padding: .5rem .75rem; font-weight: 700; background: var(--site-accent); color: white; }
+        .dark .kh-actions button { color: black; }
+        .kh-actions button:disabled { opacity: .45; cursor: default; }
+        .kh-controls label { display: block; margin-bottom: .5rem; font-weight: 700; }
+        .kh-controls select { width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid #888; border-radius: .4rem; background: white; color: black; }
+        .dark .kh-controls select { background: #171719; color: white; }
+        .kh-setting { display: flex; justify-content: space-between; gap: .5rem; margin-top: 1.25rem; }
+        .kh-legend { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; font-size: .9rem; }
+        .kh-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+        .kh-legend i { width: .8rem; height: .8rem; border-radius: .15rem; border: 1px solid rgb(127 127 127 / .4); }
+        .kh-heavy { background: rgb(245 20 31); }
+        .kh-mixed { background: rgb(133 41 140); }
+        .kh-light { background: rgb(20 61 250); }
+        .kh-clock { display: flex; gap: .35rem; margin-top: 1.5rem; font-variant-numeric: tabular-nums; }
+        #kh-fps { margin-left: auto; opacity: .7; }
+        #kh-status { margin-top: .5rem; min-height: 1.5rem; }
+        #kh-status[data-error="true"] { color: #b91c1c; }
+        .dark #kh-status[data-error="true"] { color: #fca5a5; }
+        .kh-controls :is(button, select):focus-visible { outline: 2px solid var(--site-accent); outline-offset: 3px; }
+        
+        /* Keep controls beside the view and below it on narrow screens. */
+        .kh-viewport { width: 100%; max-height: 72svh; overflow: auto; }
+        .kh-stage { display: flex; justify-content: center; width: -moz-max-content; width: max-content; min-width: 100%; }
+        .kh-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem .75rem; border: 0; padding: 0; margin: 0; min-width: 0; }
+        .kh-wide { grid-column: 1 / -1; }
+        .kh-controls .kh-fields label { font-size: .9rem; margin-bottom: .3rem; }
+        .kh-fields label output { float: right; font-variant-numeric: tabular-nums; }
+        .kh-fields input[type="range"], #kh-scrub { width: 100%; accent-color: var(--site-accent); }
+        .kh-fields input[type="range"] { display: block; margin: 0; }
+        .kh-fields .kh-setting { margin: -.25rem 0 0; font-size: .9rem; }
+        .kh-controls select, .kh-controls input[type="number"], #kh-zoom { width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid #888; border-radius: .4rem; background: white; color: black; font: inherit; font-size: .95rem; }
+        .dark .kh-controls input[type="number"], .dark #kh-zoom { background: #171719; color: white; }
+        .kh-fields input[aria-invalid="true"] { border-color: #bb2323; }
+        .dark .kh-fields input[aria-invalid="true"] { border-color: #ff9292; }
+        #kh-pending, #kh-memory-limit, #kh-input-error { font-size: .85rem; margin-top: .5rem; }
+        #kh-input-error { color: #a21a1a; }
+        .dark #kh-input-error { color: #ff9292; }
+        /* Align the history readouts below the slider. */
+        .kh-history-info { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .5rem .75rem; margin-top: .5rem; }
+        .kh-view .kh-history-info p { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+        .kh-history-info #kh-history-end, .kh-history-info .kh-memory { text-align: right; font-size: .85rem; }
+        .kh-toolbar .kh-actions { margin-bottom: .75rem; }
+        .kh-display-options { display: grid; grid-template-columns: minmax(0, 1fr) 5rem; gap: .75rem; align-items: center; margin-bottom: .75rem; }
+        .kh-display-options label { justify-self: end; font-size: .9rem; font-weight: 700; }
+        .kh-playback { margin-top: .5rem; font-variant-numeric: tabular-nums; }
+        .kh-playback .kh-clock { margin-top: .5rem; align-items: center; flex-wrap: wrap; }
+        #kh-view-state { opacity: .7; margin-left: auto; font-size: .85rem; }
+        #kh-live, #kh-advance { min-height: 2.75rem; padding: .35rem .65rem; border: 1px solid var(--site-accent); border-radius: .4rem; font-weight: 700; }
+        #kh-live:disabled, #kh-scrub:disabled, #kh-advance:disabled { opacity: .4; cursor: default; }
+        #kh-saved { font-size: .85rem; opacity: .75; }
+        .kh-app :is(button, select, input, summary, [tabindex]):focus-visible { outline: 2px solid var(--site-accent); outline-offset: 3px; }
+        .kh-view #kh-status { font-size: .9rem; margin-top: .5rem; }
+        .kh-advanced { border-top: 1px solid rgb(127 127 127 / .4); padding-top: .75rem; }
+        .kh-advanced summary { cursor: pointer; font-weight: 700; min-height: 2.75rem; padding: .5rem 0; }
+        .kh-advanced .kh-fields { margin-top: .5rem; }
+        .kh-app [hidden] { display: none; }
+        @media (max-width: 48rem) {
+            .kh-app { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+            .kh-app .kh-view { grid-column: 1; grid-row: 1; }
+            .kh-app .kh-controls { grid-column: 1; grid-row: 2; }
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/kelvinHelmholtz-BYMSP3bG.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-Ke7zwH0v.js">
+  <link rel="stylesheet" crossorigin href="./assets/style-DKSny-RA.css">
+</head>
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
+
+    <style>
+    /* Keep desktop arrows out of view until keyboard focus needs them. */
+    @media (min-width: 80rem) {
+        .site-header .site-nav-group > .site-nav-link { padding-right: .75rem; }
+        .site-header .site-submenu-toggle:not(:focus-visible) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+</style>
+<nav class="site-header top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5" data-position="sticky" aria-label="Primary navigation">
+    <a href="#main-content" class="site-skip-link">Skip to content</a>
+    <div class="site-header-bar">
+        <div class="site-brand">
+            <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
+                Ryan J. Myers
+            </a>
+        </div>
+
+        <div class="site-menu-control">
+            <button id="menu-toggle" type="button" aria-label="Open navigation" aria-controls="mobile-menu" aria-expanded="false" class="h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all" hidden>
+                <span class="text-2xl" aria-hidden="true">☰</span>
+            </button>
+        </div>
+
+        <div class="site-theme-control">
+            <button id="theme-toggle" type="button" aria-label="Switch color theme" class="group h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
+                <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]" aria-hidden="true">💡</span>
+                <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity" aria-hidden="true">💡</span>
+            </button>
+        </div>
+        <!-- Edit this list to update navigation on every page. -->
+        <ul id="mobile-menu" class="site-nav-links bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
+            <li><a href="./index.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Home</a></li>
+            <li><a href="./about.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">About</a></li>
+            <li class="site-nav-group">
+                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="location">Instability</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Instability pages" aria-controls="instability-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="instability-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./kelvin-helmholtz.html" aria-current="page">Kelvin-Helmholtz</a></li>
+                    <li><a class="site-submenu-link" href="./rayleigh-taylor.html">Rayleigh-Taylor</a></li>
+                </ul>
+            </li>
+            <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
+            <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
+            <li class="site-nav-group">
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Sandbox</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="sandbox-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./logistic-map.html">Logistic Map</a></li>
+                    <li><a class="site-submenu-link" href="./plinko.html">Plinko</a></li>
+                    <li><a class="site-submenu-link" href="./black-scholes.html">Black-Scholes-Merton Model</a></li>
+                </ul>
+            </li>
+            <li><a href="./other.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Other</a></li>
+        </ul>
+    </div>
+</nav>
+<script data-site-header>
+// Connect navigation without waiting for any application modules.
+(() => {
+    const header = document.querySelector('.site-header');
+    const button = header?.querySelector('#menu-toggle');
+    const links = header?.querySelector('#mobile-menu');
+    if (!button || !links || header.dataset.menuReady === 'true') return;
+
+    // Keep footer years current without changing their appearance.
+    function updateFooterYear() {
+        const year = String(new Date().getFullYear());
+        document.querySelectorAll('[data-current-year]').forEach(element => {
+            element.textContent = year;
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateFooterYear, { once: true });
+    else updateFooterYear();
+    window.addEventListener('pageshow', updateFooterYear);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) updateFooterYear();
+    });
+
+    const desktop = window.matchMedia('(min-width: 80rem)');
+
+    const groups = [...header.querySelectorAll('.site-nav-group')];
+
+    // Show one submenu and keep its disclosure state in sync.
+    function setSubmenu(group, expanded) {
+        group.querySelector('.site-submenu').hidden = !expanded;
+        group.querySelector('.site-submenu-toggle').setAttribute('aria-expanded', String(expanded));
+    }
+
+    function closeSubmenus(except) {
+        groups.forEach(group => {
+            if (group !== except) setSubmenu(group, false);
+        });
+    }
+
+    groups.forEach(group => {
+        const toggle = group.querySelector('.site-submenu-toggle');
+        const submenu = group.querySelector('.site-submenu');
+        const open = () => {
+            closeSubmenus(group);
+            setSubmenu(group, true);
+        };
+        toggle.addEventListener('click', () => {
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            closeSubmenus();
+            setSubmenu(group, !expanded);
+        });
+        group.addEventListener('pointerenter', event => {
+            if (desktop.matches && event.pointerType === 'mouse') open();
+        });
+        group.addEventListener('pointerleave', event => {
+            if (event.pointerType === 'mouse' && !group.contains(document.activeElement)) setSubmenu(group, false);
+        });
+        group.addEventListener('focusout', event => {
+            if (!group.contains(event.relatedTarget)) setSubmenu(group, false);
+        });
+        group.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' && !submenu.contains(event.target)) {
+                event.preventDefault();
+                open();
+                submenu.querySelector('a').focus();
+            }
+            if (event.key === 'Escape' && !submenu.hidden) {
+                event.preventDefault();
+                event.stopPropagation();
+                setSubmenu(group, false);
+                toggle.focus();
+            }
+        });
+        setSubmenu(group, false);
+        toggle.hidden = false;
+    });
+
+    document.addEventListener('click', event => {
+        if (!groups.some(group => group.contains(event.target))) closeSubmenus();
+    });
+
+    // Keep visibility and the button's announced state together.
+    function setExpanded(expanded) {
+        if (!expanded) closeSubmenus();
+        header.dataset.menuOpen = String(expanded);
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', expanded ? 'Close navigation' : 'Open navigation');
+    }
+
+    button.addEventListener('click', () => {
+        setExpanded(button.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // Close navigation before following its destination.
+    links.addEventListener('click', event => {
+        if (event.target.closest('a')) setExpanded(false);
+    });
+
+    // Return focus to the menu button when Escape closes the list.
+    header.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+        event.preventDefault();
+        setExpanded(false);
+        button.focus();
+    });
+
+    // Keep focus out of links that become collapsed after resizing.
+    desktop.addEventListener('change', () => {
+        if (!desktop.matches && links.contains(document.activeElement)) button.focus();
+        else groups.forEach(group => {
+            if (group.querySelector('.site-submenu').contains(document.activeElement)) group.querySelector('.site-submenu-toggle').focus();
+        });
+        setExpanded(false);
+    });
+
+    // Move keyboard focus as well as the scroll position past navigation.
+    header.querySelector('.site-skip-link')?.addEventListener('click', () => {
+        setExpanded(false);
+        document.getElementById('main-content')?.focus({ preventScroll: true });
+    });
+
+    setExpanded(false);
+    header.dataset.menuReady = 'true';
+    button.hidden = false;
+    document.dispatchEvent(new Event('site-header-ready'));
+})();
+</script>
+
+    <main id="main-content" tabindex="-1" class="max-w-6xl mx-auto px-6 py-12 flex-grow w-full">
+        <h1 class="text-4xl md:text-5xl font-bold text-center mb-8 text-crimson dark:text-green">Kelvin-Helmholtz</h1>
+        <section class="kh-app" aria-label="Kelvin-Helmholtz simulation">
+            <div class="kh-view">
+                <div class="kh-toolbar">
+                    <div class="kh-actions">
+                        <button id="kh-run" type="button" aria-pressed="false" disabled>Run</button>
+                        <button id="kh-reset" type="button">Reset</button>
+                    </div>
+                    <div class="kh-display-options">
+                        <label for="kh-zoom">Zoom</label>
+                        <select id="kh-zoom" title="Change the display size without changing the simulation grid.">
+                            <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="kh-viewport" class="kh-viewport" tabindex="0" role="region" aria-label="Simulation view">
+                    <div class="kh-stage">
+                        <canvas id="kh-canvas" width="256" height="128" role="img" aria-label="Kelvin-Helmholtz material field. Red is material A and blue is material B. Purple shows intermediate material fractions.">WebGL 2 is needed to display this simulation.</canvas>
+                    </div>
+                </div>
+                <div class="kh-playback">
+                    <div class="kh-clock"><span>t = <span id="kh-time">0.00</span></span><span id="kh-fps"></span></div>
+                    <div class="kh-clock">
+                        <button id="kh-advance" type="button" disabled title="Advance the live simulation to the next saved time, then pause.">Next snapshot</button>
+                        <span id="kh-view-state">Live</span>
+                        <button id="kh-live" type="button" disabled>Live</button>
+                    </div>
+                    <label for="kh-scrub" class="sr-only">Saved time</label>
+                    <input id="kh-scrub" type="range" min="0" max="0" step="1" value="0" disabled>
+                    <div class="kh-history-info">
+                        <p id="kh-saved">No snapshots</p>
+                        <p id="kh-history-end"></p>
+                        <p id="kh-status" role="status">Preparing simulation…</p>
+                        <p class="kh-memory" title="Estimated simulation and snapshot textures. Browser and graphics driver overhead is additional.">Estimated buffers <span id="kh-memory"></span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="kh-controls">
+                <fieldset id="kh-setup" class="kh-fields">
+                    <legend class="sr-only">Settings for the next run</legend>
+                    <div class="kh-wide">
+                        <label for="kh-resolution">Resolution</label>
+                        <select id="kh-resolution">
+                            <option value="64">Lowest (128 × 64)</option>
+                            <option value="128" selected>Low (256 × 128)</option>
+                            <option value="192">Medium (384 × 192)</option>
+                            <option value="256">High (512 × 256)</option>
+                            <option value="384">Highest (768 × 384)</option>
+                        </select>
+                    </div>
+                    <div class="kh-wide">
+                        <label for="kh-waves">Waves <output id="kh-waves-value" for="kh-waves">3</output></label>
+                        <input id="kh-waves" type="range" min="1" max="6" step="1" value="3">
+                        <p class="kh-setting">Wavelength <output id="kh-wavelength" for="kh-waves">0.667</output></p>
+                    </div>
+                    <div class="kh-wide">
+                        <label for="kh-amplitude">Amplitude / wavelength <output id="kh-amplitude-value" for="kh-amplitude">0.025</output></label>
+                        <input id="kh-amplitude" type="range" min="0" max="0.05" step="0.001" value="0.025" title="Perturb the material interface and seed a small cross-stream velocity.">
+                    </div>
+                    <div class="kh-wide">
+                        <label for="kh-shear">Velocity difference <output id="kh-shear-value" for="kh-shear">1.00</output></label>
+                        <input id="kh-shear" type="range" min="0" max="4" step="0.05" value="1" title="The upper layer flows right and the lower layer flows left at half this speed.">
+                    </div>
+                    <div>
+                        <label id="kh-interval-label" for="kh-interval">Save every</label>
+                        <input id="kh-interval" type="number" min="0.01" max="1" step="any" value="0.25" inputmode="decimal" required title="Interval in simulated time, from 0.01 to 1.">
+                    </div>
+                    <div>
+                        <label id="kh-limit-label" for="kh-limit">Snapshots</label>
+                        <input id="kh-limit" type="number" min="2" max="50" step="1" value="30" inputmode="numeric" required title="Total saved states, including the initial state.">
+                    </div>
+                    <details class="kh-wide kh-advanced">
+                        <summary>Advanced options</summary>
+                        <div class="kh-fields">
+                            <div class="kh-wide">
+                                <label for="kh-atwood">Atwood number <output id="kh-atwood-value" for="kh-atwood">0.00</output></label>
+                                <input id="kh-atwood" type="range" min="0" max="0.8" step="0.01" value="0">
+                            </div>
+                            <div class="kh-wide">
+                                <label for="kh-acceleration">Acceleration <output id="kh-acceleration-value" for="kh-acceleration">0.00</output></label>
+                                <input id="kh-acceleration" type="range" min="0" max="4" step="0.05" value="0" title="Unitless downward acceleration. Changes apply on reset.">
+                            </div>
+                            <div class="kh-wide">
+                                <label for="kh-arrangement" title="Material A is denser when the Atwood number is above zero.">Material A</label>
+                                <select id="kh-arrangement"><option value="above">Above</option><option value="below">Below</option></select>
+                            </div>
+                            <div class="kh-wide">
+                                <label id="kh-viscosity-label" for="kh-viscosity">Viscosity</label>
+                                <select id="kh-viscosity" required title="Explicit velocity diffusion. Changes apply on reset.">
+                                    <option value="0" selected>Inviscid (0.0000)</option>
+                                    <option value="0.0002">Normal (0.0002)</option>
+                                    <option value="0.0004">Viscous (0.0004)</option>
+                                    <option value="0.001">Super viscous (0.001)</option>
+                                </select>
+                            </div>
+                            <div class="kh-wide">
+                                <label id="kh-thickness-label" for="kh-thickness">Interface width</label>
+                                <select id="kh-thickness" required title="Initial transition width: Sharp 0.015625, Normal 0.03125, Diffuse 0.0625. Changes apply on reset.">
+                                    <option value="0.015625" selected>Sharp</option>
+                                    <option value="0.03125">Normal</option>
+                                    <option value="0.0625">Diffuse</option>
+                                </select>
+                            </div>
+                        </div>
+                    </details>
+                </fieldset>
+                <p id="kh-pending" hidden>Changes apply on reset.</p>
+                <p id="kh-input-error" role="status" hidden></p>
+                <p id="kh-memory-limit" hidden></p>
+                <label for="kh-palette">Colors</label>
+                <select id="kh-palette">
+                    <option value="red-blue">Red / Blue</option>
+                    <option value="orange-blue">Orange / Blue</option>
+                    <option value="magenta-teal">Magenta / Teal</option>
+                    <option value="black-white">Black / White</option>
+                    <option value="navy-gold">Navy / Gold</option>
+                    <option value="purple-mint">Purple / Mint</option>
+                </select>
+                <div class="kh-legend" aria-label="Material colors">
+                    <span><i class="kh-heavy" aria-hidden="true"></i>Material A</span>
+                    <span><i class="kh-mixed" aria-hidden="true"></i>Mixed</span>
+                    <span><i class="kh-light" aria-hidden="true"></i>Material B</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Replace the placeholder text in each accordion. -->
+        <div class="instability-notes space-y-4 mt-8">
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">What is this?</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    <p class="mb-4">
+                        The Kelvin-Helmholtz instability happens whenever two fluids slide past each other at different speeds. The easiest physical example is wind blowing across the surface of a lake. The speed difference across between the air and water creates friction and shear. That shear wants to spin the fluid and roll the boundary up into swirling vortices. Even a microscopic ripple will catch the flow and trigger the instability to develop.
+                    </p>
+                    <p>
+                        As the fluids slide past each other, the boundary rolls up into wave-like structures called billows. These swirling billows look exactly like crashing ocean waves. As they grow and spin faster, the layers stretch and fold until they break down into a chaotic turbulent mess. Kelvin-Helmholtz instabilities are seen everywhere from gas planets to ocean waves, and they are incredibly important for understanding mixing in these environments.
+                    </p>
+                </div>
+            </details>
+
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">How to use</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    <p class="mb-4">
+                        This tool lets you set up an initial domain of the instability and watch it evolve in real time. During the early stage of the instability with fluids of the same density, the height of the ripple grows exponentially according to linear stability theory.
+                    </p>
+                    <p class="my-6 text-center text-lg font-serif">
+                        <i>η</i>(<i>t</i>) = <i>η</i><sub>0</sub> exp((<i>k</i> &Delta;<i>U</i> / 2) <i>t</i>)
+                    </p>
+                    <p class="mb-4">
+                        The starting disturbance height is <i>η</i><sub>0</sub>, and the terms inside the exponent control how fast that ripple explodes. Here is how the main settings tie into that growth and the simulation grid:
+                    </p>
+                    <ul class="list-disc list-inside space-y-3 mb-6 ml-2">
+                        <li><strong>Velocity Difference (&Delta;U)</strong> is the shear speed between the upper and lower layers. A larger speed difference directly and rapidly speeds up the instability growth.</li>
+                        <li><strong>Waves and Domain Width</strong> determine the wavenumber k = 2π / λ. Setting more waves packs shorter wavelengths into the domain. The linear growth equation shows that shorter wavelengths with higher k grow the fastest.</li>
+                        <li><strong>Amplitude</strong> sets the initial height (<i>η</i><sub>0</sub>) of the ripple. Larger values skip past the early linear predictions almost immediately, and quicken growth.</li>
+                    </ul>
+                    <p>
+                        Hit Run to start the calculation, or use Next Snapshot to step forward by your chosen save interval. You can scrub through recorded snapshots using the slider to inspect earlier stages of the mixing layer, or switch back to Live to continue the run.
+                    </p>
+                </div>
+            </details>
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Resources</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="https://en.wikipedia.org/wiki/Kelvin%E2%80%93Helmholtz_instability" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia page for the Kelvin-Helmholtz instability</a>
+                        </li>
+                        <li>
+                            <a href="http://www.scholarpedia.org/article/Kelvin-Helmholtz_Instability_and_Roll-up" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Scholarpedia article on Kelvin-Helmholtz Instability and Roll-up</a>
+                        </li>
+                        <li>
+                            <a href="https://link.springer.com/article/10.1007/s11214-018-0505-6" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Review paper on the Kelvin-Helmholtz Instability</a>
+                        </li>
+                        <li>
+                            <a href="https://store.doverpublications.com/products/9780486640716" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Hydrodynamic and Hydromagnetic Stability by Chandrasekhar</a>
+                        </li>
+                        <li>
+                            <a href="https://www.cambridge.org/core/books/introduction-to-hydrodynamic-stability/52F918FA38D2984D4638F2D04C8CFA3A" target="_blank" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Introduction to Hydrodynamic Stability by Drazin</a>
+                        </li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+    </main>
+
+    <footer class="fixed bottom-2 right-6 z-10 site-footer">
+        <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
+            © <span data-current-year>2026</span> Ryan Myers. Code under MIT.
+        </p>
+    </footer>
+
+
+</body>
+</html>
