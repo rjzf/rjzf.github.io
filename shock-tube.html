@@ -71,6 +71,8 @@
         :root { --shock-accent: #841617; --shock-track: #e2e8f0; }
         .dark { --shock-accent: #32CD32; --shock-track: #333; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
+        label[for="useShockGPU"]:has(:disabled) { opacity: 0.5; cursor: not-allowed; }
+        #useShockGPU:disabled { cursor: not-allowed; }
         [hidden] { display: none !important; }
         #xtCanvas { touch-action: pan-x pan-y; }
         .modal-content { max-height: 90vh; overflow-y: auto; }
@@ -146,8 +148,8 @@
         }
     </style>
   <script type="module" crossorigin src="./assets/modulepreload-polyfill-Ke7zwH0v.js"></script>
-  <script type="module" crossorigin src="./assets/sandbox-apps-Cz-zKyTQ.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/style-BTUHECQE.css">
+  <script type="module" crossorigin src="./assets/sandbox-apps-B9DINQmq.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/style-BmKzO6fR.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page shock-tube-page">
 
@@ -468,7 +470,7 @@
                             </select>
                             <div class="mt-3">
                                 <label class="flex items-center gap-2 cursor-pointer" for="useShockGPU">
-                                    <input id="useShockGPU" type="checkbox" class="w-4 h-4 shrink-0 cursor-pointer accent-crimson dark:accent-green" aria-describedby="shockGPUHelp">
+                                    <input id="useShockGPU" type="checkbox" class="w-4 h-4 shrink-0 cursor-pointer accent-crimson dark:accent-green" aria-describedby="shockGPUHelp" disabled>
                                     <span class="input-label mb-0">Use GPU acceleration</span>
                                 </label>
                                 <p id="shockGPUHelp" class="text-xs mt-1">Only use if calculating more than ~20,000 cells, automatically turns simulation in to 32-bit accuracy.</p>

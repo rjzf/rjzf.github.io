@@ -29,6 +29,9 @@ export function initShockTube() {
     const progress = document.getElementById('runProgress');
     const acknowledgement = document.getElementById('allowHighMemory');
     const resourceWarning = document.getElementById('resourceWarning');
+    const gpuControl = document.getElementById('useShockGPU');
+    const gpuHelp = document.getElementById('shockGPUHelp');
+    const gpuHelpText = gpuHelp.textContent;
     const exportIds = ['exportXTBtn', 'exportSnapshotBtn', 'exportTracerBtn', 'exportPngBtn'];
     let solver = null,
         worker = null,
@@ -42,6 +45,19 @@ export function initShockTube() {
     let retainedHistoryBytes = 0, completedReferenceKey = null;
     const csvEstimateCache = new Map();
     const visualizer = new ShockVisuals();
+
+    // Enable GPU selection only when the browser can provide an adapter.
+    async function checkGPUAvailability() {
+        gpuControl.checked = false;
+        gpuControl.disabled = true;
+        gpuHelp.textContent = 'Checking GPU availability.';
+        let available = false;
+        try {
+            available = Boolean(await globalThis.navigator?.gpu?.requestAdapter({ powerPreference: 'high-performance' }));
+        } catch { /* Keep CPU execution available if adapter discovery fails. */ }
+        gpuControl.disabled = !available;
+        gpuHelp.textContent = available ? gpuHelpText : 'Hardware acceleration disabled on this browser, please search "how to enable WebGPU" to use.';
+    }
 
     // Mark displayed results as belonging to earlier inputs.
     function markChanged(message) {
@@ -152,7 +168,7 @@ export function initShockTube() {
                 unitSystem: system === 'arbitrary' ? 'arbitrary' : 'mks',
                 displayUnits: system
             });
-            return { ...config, gpuAcceleration: document.getElementById('useShockGPU').checked };
+            return { ...config, gpuAcceleration: !gpuControl.disabled && gpuControl.checked };
         } catch (error) {
             const fields = { 'Grid cells': 'gridCells', 'CFL number': 'cflNumber', 'Max time': 'maxTime', 'Snapshot interval': 'snapshotInterval', 'Too many snapshots': 'snapshotInterval' };
             const match = Object.entries(fields).find(([label]) => error.message.startsWith(label));
@@ -216,7 +232,7 @@ export function initShockTube() {
             lastProgressAnnouncement = -1;
             updateButtons();
             status.textContent = 'Running simulation…';
-            const gpuAcceleration = document.getElementById('useShockGPU').checked;
+            const gpuAcceleration = config.gpuAcceleration;
             const candidate = gpuAcceleration
                 ? new Worker(new URL('./shock-physics-gpuaccel.js', import.meta.url), { type: 'module' })
                 : new Worker(new URL('./shock-physics.js', import.meta.url), { type: 'module' });
@@ -436,6 +452,7 @@ export function initShockTube() {
         }, 'image/png');
     });
 
+    checkGPUAvailability();
     updateEstimates();
     runSimulation();
 }
