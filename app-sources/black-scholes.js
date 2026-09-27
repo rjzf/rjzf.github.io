@@ -15,13 +15,14 @@ export function initBlackScholes() {
     const typeSelect = document.getElementById('bs-type-select');
     const priceDisplay = document.getElementById('bs-price-display');
 
+    // Fixed annual continuously compounded risk-free rate.
     const r = 0.05; 
     let currentGreeks = {};
 
-    // Standard Normal PDF
+    // Standard normal probability density.
     const ND = (x) => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
 
-    // Cumulative Normal Distribution approximation
+    // Polynomial approximation of the standard normal cumulative distribution.
     function CND(x) {
         const a = [0.31938153, -0.356563782, 1.781477937, -1.821255978, 1.330274429];
         const L = Math.abs(x);
@@ -30,11 +31,13 @@ export function initBlackScholes() {
         return (x < 0) ? 1.0 - w : w;
     }
 
+    // Price a European option with Black-Scholes and compute its sensitivities.
     function calculate() {
         if ([sInput, kInput, volInput, tInput, costInput].some(input => !input.checkValidity() || !Number.isFinite(input.valueAsNumber))) return;
         const S = parseFloat(sInput.value);
         const K = parseFloat(kInput.value);
         const sigma = parseFloat(volInput.value) / 100.0;
+        // Convert days to years and avoid the singular zero-expiry Greeks.
         const T = Math.max(0.0001, parseFloat(tInput.value) / 365.0);
         const entryCost = parseFloat(costInput.value);
         const isCall = typeSelect.value === 'call';
@@ -47,7 +50,7 @@ export function initBlackScholes() {
 
         const profit = theoreticalPrice - entryCost;
 
-        // Store greeks and theoretical value for rendering
+        // Vega and rho are per percentage point, theta is per calendar day.
         currentGreeks = {
             delta: isCall ? CND(d1) : CND(d1) - 1,
             gamma: ND(d1) / (S * sigma * Math.sqrt(T)),
@@ -160,7 +163,7 @@ export function initBlackScholes() {
         // Draw Marker for Current Asset Value
         ctx.fillStyle = '#f23'; ctx.beginPath(); ctx.arc(spotX, spotY, 5, 0, Math.PI * 2); ctx.fill();
 
-        // Clearer Legend
+        // Plot legend.
         const lx = compact ? 12 : padding, ly = bottom + 66;
         ctx.textAlign = 'left'; ctx.fillStyle = '#000000';
         
@@ -168,11 +171,11 @@ export function initBlackScholes() {
         ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 20, ly); ctx.stroke();
         ctx.fillText('Theoretical Option Value', lx + 30, ly + 3);
         
-        // Legend: Entry Cost Line (Moved up to fill the gap)
+        // Entry cost legend.
         ctx.strokeStyle = '#15803d'; ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]); ctx.beginPath(); ctx.moveTo(lx, ly + 15); ctx.lineTo(lx + 20, ly + 15); ctx.stroke();
         ctx.setLineDash([]); ctx.fillText('Break-even', lx + 30, ly + 18);
 
-        // Legend: Current Spot Dot (Moved up to fill the gap)
+        // Current spot legend.
         ctx.fillStyle = '#f23'; ctx.beginPath(); ctx.arc(lx + 10, ly + 30, 4, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#000000'; ctx.fillText('Current Asset Price', lx + 30, ly + 33);
 

@@ -6,7 +6,7 @@ export const MEMORY_WARNING = 128e6;
 export const MEMORY_ACKNOWLEDGEMENT = 256e6;
 const MAX_ARRAY_LENGTH = 0xffffffff;
 
-// Factors convert displayed values to SI; MW stays in g/mol.
+// Factors convert displayed values to SI, with molecular weight in g/mol.
 export const unitSystems = {
     arbitrary: {
         x: 1,
@@ -138,15 +138,48 @@ export function estimateResources(config, materials = 2, retainedBytes = 0, plot
     const cells = config.gridCells, tracers = Math.max(0, materials - 1);
     const digits = config.snapshotPrecision === '32' ? 9 : 17;
     const fieldBytes = cells * snapshots * 4 * (config.snapshotPrecision === '32' ? 4 : 8);
-    const previewBytes = cells > 8192 ? 4 * 4096 * 4 : 0;
+    const previewBytes = cells > 8192 ? 4 * 4 * Math.ceil(cells / Math.ceil(cells / 1024)) * 4 : 0;
     const historyBytes = fieldBytes + cells * 8 + snapshots * (768 + tracers * 128 + previewBytes);
-    const workingBytes = 8 * ((20 + 6 * materials) * cells + 4 + 2 * materials);
+    // x belongs to history. Count the remaining CPU arrays, including both
+    // three-component boundary-transfer buffers, exactly once.
+    const cpuWorkingBytes = 8 * ((19 + 6 * materials) * cells + 10 + 2 * materials);
+    const cellStride = Math.ceil((32 + 8 * materials) / 16) * 16;
+    const faceStride = Math.ceil((16 + 8 * materials) / 16) * 16;
+    const gpuBufferBytes = config.gpuAcceleration
+        ? 3 * cells * cellStride + (cells + 1) * faceStride + Math.ceil(cells / 128) * 8 + 768 + cells * 48
+        : 0;
+    // The GPU backend releases CPU-only arrays after upload, keeping rho/u/p/T
+    // and two transfer vectors. Include WebGPU staging buffers in its allocation.
+    const workingBytes = config.gpuAcceleration ? (4 * cells + 6) * 8 : cpuWorkingBytes;
     const overheadBytes = 32 * 1024 * 1024;
-    const csvBytes = cells * snapshots * (2 * 24 + 4 * (digits + 8) + 7) + 16384;
+    // Conservative pre-run text allowance, not an expected file size. Fixed
+    // notation can expand even a 9-digit number to 22 characters with its sign.
+    const csvBytes = cells * snapshots * (2 * 24 + 4 * Math.max(22, digits + 8) + 7) + 16384;
     const tracerCsvBytes = snapshots * tracers * 70 + 16384;
-    const runBytes = retainedBytes + historyBytes + workingBytes + plotBytes + overheadBytes;
-    return { snapshots, fieldBytes, historyBytes, workingBytes, csvBytes, tracerCsvBytes,
+    const initializationBytes = config.gpuAcceleration
+        ? cpuWorkingBytes + cells * cellStride + gpuBufferBytes + cells * 8 + fieldBytes / snapshots + previewBytes + 768 + tracers * 128
+        : 0;
+    const runBytes = retainedBytes + Math.max(initializationBytes, historyBytes + workingBytes + gpuBufferBytes) + plotBytes + overheadBytes;
+    return { snapshots, fieldBytes, historyBytes, workingBytes, cpuWorkingBytes, gpuBufferBytes,
+        initializationBytes, overheadBytes, retainedBytes, plotBytes, csvBytes, tracerCsvBytes,
         runBytes, residentBytes: historyBytes + plotBytes + overheadBytes };
+}
+
+// Count actual retained ArrayBuffers without counting shared references twice.
+// JS objects and browser bookkeeping remain an allowance, not a heap measurement.
+export function measureResultMemory(result) {
+    const buffers = new Set();
+    const add = view => { if (ArrayBuffer.isView(view)) buffers.add(view.buffer); };
+    add(result.x);
+    for (const snapshot of result.history) {
+        for (const key of ['rho', 'u', 'p', 'T']) {
+            add(snapshot[key]);
+            add(snapshot.plotIndices?.[key]);
+        }
+    }
+    const arrayBytes = [...buffers].reduce((sum, buffer) => sum + buffer.byteLength, 0);
+    const objectAllowanceBytes = result.history.length * (768 + result.tracers.length * 128);
+    return { arrayBytes, objectAllowanceBytes, historyBytes: arrayBytes + objectAllowanceBytes };
 }
 
 // Check every material section and its total length.
@@ -213,8 +246,7 @@ export function unitLabel(label, units, separator = ' ') {
     return units ? `${label}${separator}(${units})` : label;
 }
 
-// Fluid solver.
-// First-order finite volumes with coupled SSP-RK(4,3) stages.
+// One-dimensional compressible Euler finite volumes with SSP-RK(4,3) stages.
 export class EulerSolver {
     // Allocate the grid and reusable solver arrays.
     constructor(config = {}) {
@@ -226,6 +258,7 @@ export class EulerSolver {
         this.leftBoundary = this.config.leftBoundary;
         this.rightBoundary = this.config.rightBoundary;
         this.x = new Float64Array(this.nx);
+        // Cell-major conservative state: density, momentum, total energy.
         this.U = new Float64Array(this.nx * 3);
         this.Un = new Float64Array(this.U.length);
         this.rho = new Float64Array(this.nx);
@@ -242,7 +275,7 @@ export class EulerSolver {
         this.initialized = false;
     }
 
-    // Fill cells from the initial material sections.
+    // Integrate slab overlaps to initialize conservative cell averages.
     initialize(slabs) {
         this.initialized = false;
         this.slabs = validateSlabs(slabs);
@@ -258,6 +291,7 @@ export class EulerSolver {
         }));
         this.materialBeta = this.slabs.map((slab) => 1 / (slab.gamma - 1));
         this.materialInverseMW = this.slabs.map((slab) => 1 / slab.mw);
+        // Material arrays use cell * numMaterials + material as their index.
         const size = this.nx * this.numMaterials;
         this.materialFractions = new Float64Array(size);
         this.materialMass = new Float64Array(size);
@@ -294,7 +328,7 @@ export class EulerSolver {
                 slab.pressure / (slab.gamma - 1) + 0.5 * slab.density * slab.velocity ** 2;
             if (slab.length < 2 * this.dx)
                 this.warnings.push(
-                    `Section ${m + 1} spans fewer than two cells; increase resolution for its wave structure.`
+                    `Section ${m + 1} spans fewer than two cells. Increase resolution for its wave structure.`
                 );
             for (let i = 0; i < this.nx; i++) {
                 // Measure overlap in cell coordinates to avoid subtracting nearby positions.
@@ -316,7 +350,7 @@ export class EulerSolver {
         this.initialized = true;
     }
 
-    // Recover gas properties and check each cell state.
+    // Recover pressure from the volume-fraction-weighted ideal-gas mixture closure.
     updatePrimitives() {
         this.maxWaveSpeed = 0;
         for (let i = 0; i < this.nx; i++) {
@@ -328,6 +362,7 @@ export class EulerSolver {
             for (let m = 0; m < this.numMaterials; m++) {
                 const alpha = this.materialFractions[offset + m];
                 const partialMass = this.materialMass[offset + m];
+                // Double-precision fraction tolerance admits roundoff without clipping.
                 if (
                     !Number.isFinite(alpha) ||
                     alpha < -1e-12 ||
@@ -381,7 +416,7 @@ export class EulerSolver {
         }
     }
 
-    // Calculate fluid and material fluxes at cell faces.
+    // Compute shared HLLC face fluxes with a coupled Rusanov fallback.
     computeFluxes(forceFallback = false) {
         for (let i = 0; i <= this.nx; i++) {
             const left = Math.max(0, i - 1),
@@ -519,6 +554,8 @@ export class EulerSolver {
                     originalWeight * this.massN[index] +
                     stageWeight * this.materialMass[index] -
                     ratio * (this.materialFlux[right] - this.materialFlux[index]);
+                // The alpha * div(u) correction advects volume fraction nonconservatively.
+                // Partial material densities above retain conservative flux updates.
                 this.materialFractions[index] =
                     originalWeight * this.fractionsN[index] +
                     stageWeight * alpha -
@@ -544,7 +581,7 @@ export class EulerSolver {
         return values[left] * (1 - fraction) + values[left + 1] * fraction;
     }
 
-    // Advance interfaces and record open-boundary exits.
+    // Advance passive interface tracers with Heun's method and record boundary exits.
     updateTracers(dt) {
         for (const tracer of this.tracers) {
             if (!tracer.active) continue;
@@ -567,7 +604,7 @@ export class EulerSolver {
         }
     }
 
-    // Advance one stable step and honor exact snapshot times.
+    // Advance SSP-RK(4,3), retry rejected states, and land on scheduled snapshot times.
     step() {
         if (!this.initialized) throw new Error('Initialize the solver before stepping.');
         if (this.t >= this.finalTime) return false;
@@ -593,9 +630,11 @@ export class EulerSolver {
                 this.stepTransfer.fill(0);
                 for (let stage = 0; stage < 4; stage++) {
                     const stageSpeed = this.maxWaveSpeed;
+                    // Each forward-Euler substep uses dt/2 with a 0.95 stage CFL ceiling.
                     if ((0.5 * this.dt * stageSpeed) / this.dx > 0.95)
                         throw new Error('Stage CFL limit exceeded.');
                     this.computeFluxes(fallback);
+                    // SSP-RK(4,3) quadrature weights for boundary-flux conservation.
                     const weight = stage === 3 ? 0.5 : 1 / 6;
                     for (let k = 0; k < 3; k++)
                         this.stepTransfer[k] +=
@@ -722,6 +761,8 @@ export class EulerSolver {
 // Run the solver when this file is loaded as a worker.
 if (typeof self !== 'undefined' && typeof document === 'undefined') {
     self.addEventListener('message', (event) => {
+        // This module also supplies shared validation/snapshot code to the GPU worker.
+        if (event.data.gpuAcceleration) return;
         try {
             const started = performance.now();
             const solver = new EulerSolver(event.data.config);

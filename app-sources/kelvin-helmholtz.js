@@ -1,5 +1,4 @@
-// Kelvin-Helmholtz problem definition and browser controls. KH-specific parameters, shear-layer
-// initialization, and UI stay here so the shared GPU numerics and solver sequence remain reusable.
+// Kelvin-Helmholtz shear-layer initialization and browser controls.
 
 import {
   INSTABILITY_GLSL,
@@ -33,9 +32,9 @@ export const KH_CONFIG = Object.freeze({
   phase: -Math.PI / 2, // Center the first billow in the view.
   heavyAbove: true, // Place material A above the interface.
   viscosity: 0, // No explicit velocity diffusion.
-  cfl: 0.4, // Compare with 0.2 for timestep sensitivity.
-  maxDt: 0.012,
-  pressureTolerance: 0.0001,
+  cfl: 0.4, // Advection and buoyancy timestep safety factor.
+  maxDt: 0.012, // Temporal resolution cap even when the CFL limit is large.
+  pressureTolerance: 0.0001, // Target dt * max(abs(div u)) after projection.
   saveInterval: 0.25,
   maxSnapshots: 30,
 });
@@ -65,12 +64,12 @@ export function khLayout(resolution, overrides = {}) {
     throw new Error('Choose Sharp, Normal, or Diffuse for the interface width.');
   if (
     cfg.cfl <= 0 ||
-    cfg.cfl > 0.4 ||
+    cfg.cfl > 0.5 ||
     cfg.maxDt <= 0 ||
     cfg.pressureTolerance <= 0 ||
     cfg.pressureTolerance > 0.002
   )
-    throw new Error('Use a CFL up to 0.4 and positive timestep and pressure settings.');
+    throw new Error('Use a CFL up to 0.5 and positive timestep and pressure settings.');
   if (typeof cfg.heavyAbove !== 'boolean') throw new Error('Use true or false for heavyAbove.');
   if (
     cfg.saveInterval < 0.01 ||
@@ -111,6 +110,7 @@ float stream(ivec2 vertex) {
   float x = float(wrap(vertex.x, grid.x)) * h;
   float y = float(vertex.y) * h;
   float k = 6.28318530718 * waves / (float(grid.x) * h);
+  // Gaussian localization over 15% of the height, tapered by sin^4 at the walls.
   float distance = (y - 0.5 * height) / (0.15 * height);
   float wall = sin(3.14159265359 * y / height);
   float envelope = wall * wall * wall * wall * exp(-distance * distance);
@@ -205,6 +205,7 @@ export function initKH() {
     zoom = get('kh-zoom');
   const arrangement = get('kh-arrangement'),
     viscosity = get('kh-viscosity'),
+    cfl = get('kh-cfl'),
     thickness = get('kh-thickness');
   const scrub = get('kh-scrub'),
     live = get('kh-live'),
@@ -244,6 +245,7 @@ export function initKH() {
   acceleration.value = String(Math.abs(KH_CONFIG.gravity));
   arrangement.value = KH_CONFIG.heavyAbove ? 'above' : 'below';
   viscosity.value = String(KH_CONFIG.viscosity);
+  cfl.value = String(KH_CONFIG.cfl);
   thickness.value = String(2 * KH_CONFIG.thickness);
   zoom.value = narrow ? '1' : '1';
 
@@ -260,6 +262,7 @@ export function initKH() {
       maxSnapshots: limit.valueAsNumber,
       heavyAbove: arrangement.value === 'above',
       viscosity: Number(viscosity.value),
+      cfl: cfl.valueAsNumber,
       thickness: Number(thickness.value) / 2,
     };
   }
@@ -294,7 +297,7 @@ export function initKH() {
     text(
       get('kh-saved'),
       solver
-        ? `${count} / ${solver.historyLimit} snapshots${!solver.recording && !solver.historyError ? ' · Full' : ''}`
+        ? `${count} / ${solver.historyLimit} snapshots${!solver.recording && !solver.historyError ? ' - Full' : ''}`
         : 'No snapshots'
     );
     if (failed || lost) return;
@@ -526,6 +529,7 @@ export function initKH() {
     limit,
     arrangement,
     viscosity,
+    cfl,
     thickness,
   ]) {
     input.addEventListener(input.tagName === 'SELECT' ? 'change' : 'input', () => {

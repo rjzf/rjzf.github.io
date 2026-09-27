@@ -1,3 +1,4 @@
+// D2Q9 BGK lattice Boltzmann flow in lattice units, with solid-node bounce-back.
 var canvas = document.getElementById('theCanvas');
 var context = canvas.getContext('2d');
 var image = context.createImageData(canvas.width, canvas.height);
@@ -26,6 +27,7 @@ var running = false;
 var frameHandle = null, frameUsesRaf = true, flowFailed = false;
 var stepCount = 0;
 var startTime = 0;
+// D2Q9 equilibrium weights for rest, axial, and diagonal populations.
 var four9ths = 4.0 / 9.0;
 var one9th = 1.0 / 9.0;
 var one36th = 1.0 / 36.0;
@@ -36,6 +38,7 @@ var draggingSensor = false; var mouseIsDown = false;
 var time = 0;
 var mouseX, mouseY; var oldMouseX = -1, oldMouseY = -1;
 
+// Separate population and macroscopic arrays share row-major index x + y * xdim.
 var n0, nN, nS, nE, nW, nNE, nSE, nNW, nSW, rho, ux, uy, curl, barrier;
 var nTracers = 100;
 var tracerX = new Float64Array(nTracers);
@@ -168,6 +171,7 @@ function changeObstacle() {
     if (tracerCheck.checked) initTracers();
 }
 
+// Initialize a uniform equilibrium flow around the selected solid obstacles.
 function initFluid() {
     flowFailed = false;
     document.getElementById('flowError').hidden = true;
@@ -231,7 +235,9 @@ function setBoundaries() {
 }
 
 // Collision logic
+// Relax D2Q9 populations toward equilibrium with the BGK collision operator.
 function collide() {
+    // Lattice viscosity nu = (tau - 1/2) / 3, with relaxation rate omega = 1/tau.
     var viscosity = Number(viscSlider.value); var omega = 1 / (3 * viscosity + 0.5);
     for (var y = 1; y < ydim - 1; y++) {
         for (var x = 1; x < xdim - 1; x++) {
@@ -266,6 +272,7 @@ function collide() {
 }
 
 // Streaming step
+// Stream populations in place, then reflect opposite populations at solid nodes.
 function stream() {
     for (var y = ydim - 2; y > 0; y--) { for (var x = 1; x < xdim - 1; x++) { nN[x + y * xdim] = nN[x + (y - 1) * xdim]; nNW[x + y * xdim] = nNW[x + 1 + (y - 1) * xdim]; } }
     for (var y = ydim - 2; y > 0; y--) { for (var x = xdim - 1; x > 0; x--) { nE[x + y * xdim] = nE[x - 1 + y * xdim]; nNE[x + y * xdim] = nNE[x - 1 + (y - 1) * xdim]; } }
@@ -284,6 +291,7 @@ function stream() {
 }
 
 // Update tracer positions
+// Advect display tracers with forward Euler and nearest-node velocity sampling.
 function moveTracers() {
     for (var t = 0; t < nTracers; t++) {
         var rx = Math.floor(tracerX[t]), ry = Math.floor(tracerY[t]); 
@@ -316,6 +324,7 @@ function push(px, py, pux, puy) {
 }
 
 // Initialize node equilibrium
+// Set the second-order, low-Mach D2Q9 equilibrium at one lattice node.
 function setEquil(x, y, nux, nuy, nrho) {
     var i = x + y * xdim; if (typeof nrho == 'undefined') nrho = rho[i];
     var ux3 = 3 * nux, uy3 = 3 * nuy, ux2 = nux * nux, uy2 = nuy * nuy, u2 = ux2 + uy2, u215 = 1.5 * u2;
@@ -385,6 +394,7 @@ function colorSquare(x, y, r, g, b) {
     }
 }
 
+// Display-only central-difference vorticity, without the 1 / (2h) normalization.
 function computeCurl() {
     for (var y = 1; y < ydim - 1; y++)
         for (var x = 1; x < xdim - 1; x++)

@@ -1,5 +1,4 @@
-// Rayleigh-Taylor problem definition and browser controls. RT-specific parameters, initialization,
-// and UI stay here so the shared GPU numerics and solver sequence remain reusable and easy to compare.
+// Rayleigh-Taylor interface initialization and browser controls.
 
 import {
   INSTABILITY_GLSL,
@@ -23,31 +22,40 @@ export const RT_VERTEX = INSTABILITY_VERTEX;
 export const RT_CONFIG = Object.freeze({
   width: 1,
   height: 3, // Height stays fixed when the domain widens.
-  atwood: 0.1, // Density tests: 0, 0.1, 0.5, and 0.8.
+  atwood: 0.1, // Standard range ends at 0.8, extended range at 0.99.
+  extendedAtwood: false,
   gravity: -1,
   amplitude: 0.025, // Amplitude divided by wavelength.
   waves: 1,
   thickness: 0.015625, // Half the initial transition width.
   phase: 0, // Shift the wave without changing its wavelength.
   heavyAbove: true, // Use false for the stable arrangement.
-  viscosity: 0.0002, // Normal viscosity.
-  cfl: 0.4, // Compare with 0.2 for timestep sensitivity.
-  maxDt: 0.012,
-  pressureTolerance: 0.0001,
+  viscosity: 0.0002, // Nondimensional kinematic viscosity.
+  cfl: 0.4, // Advection and buoyancy timestep safety factor.
+  maxDt: 0.012, // Temporal resolution cap even when the CFL limit is large.
+  pressureTolerance: 0.0001, // Target dt * max(abs(div u)) after projection.
   saveInterval: 0.25,
   maxSnapshots: 30,
 });
+
+function atwoodMaximum(extendedAtwood) {
+  return extendedAtwood ? 0.99 : 0.8;
+}
 
 export function rtLayout(resolution, overrides = {}) {
   const cfg = { ...RT_CONFIG, ...overrides };
   if (!RT_RESOLUTIONS.some((option) => option.value === resolution))
     throw new Error('Choose a supported grid resolution.');
-  if (Object.entries(cfg).some(([key, value]) => key !== 'heavyAbove' && !Number.isFinite(value)))
+  if (Object.entries(cfg).some(([key, value]) =>
+    key !== 'heavyAbove' && key !== 'extendedAtwood' && !Number.isFinite(value)))
     throw new Error('Simulation settings must be finite numbers.');
+  if (typeof cfg.extendedAtwood !== 'boolean')
+    throw new Error('Use true or false for extendedAtwood.');
   if (![1, 2, 3].includes(cfg.width) || ![2, 2.5, 3].includes(cfg.height))
     throw new Error('Choose a supported domain size.');
-  if (cfg.atwood < 0 || cfg.atwood > 0.8 || cfg.viscosity < 0 || cfg.viscosity > 0.002)
-    throw new Error('Use Atwood 0–0.8 and viscosity 0–0.002.');
+  const maxAtwood = atwoodMaximum(cfg.extendedAtwood);
+  if (cfg.atwood < 0 || cfg.atwood > maxAtwood || cfg.viscosity < 0 || cfg.viscosity > 0.002)
+    throw new Error(`Use Atwood 0–${maxAtwood} and viscosity 0–0.002.`);
   if (Math.abs(cfg.gravity) > 4) throw new Error('Use an acceleration magnitude from 0 to 4.');
   if (!Number.isInteger(cfg.waves) || cfg.waves < 1 || cfg.waves > 6)
     throw new Error('Choose one to six waves.');
@@ -62,12 +70,12 @@ export function rtLayout(resolution, overrides = {}) {
     throw new Error('Choose Sharp, Normal, or Diffuse for the interface width.');
   if (
     cfg.cfl <= 0 ||
-    cfg.cfl > 0.4 ||
+    cfg.cfl > 0.5 ||
     cfg.maxDt <= 0 ||
     cfg.pressureTolerance <= 0 ||
     cfg.pressureTolerance > 0.002
   )
-    throw new Error('Use a CFL up to 0.4 and positive timestep and pressure settings.');
+    throw new Error('Use a CFL up to 0.5 and positive timestep and pressure settings.');
   if (typeof cfg.heavyAbove !== 'boolean') throw new Error('Use true or false for heavyAbove.');
   if (
     cfg.saveInterval < 0.01 ||
@@ -90,7 +98,7 @@ uniform float amplitude, thickness, phase, heavyAbove, waves;
 void main() {
   vec2 p = gl_FragCoord.xy * h;
 
-  // Sinusoidal diffuse interface.
+  // Rayleigh-Taylor sinusoidal diffuse interface, with selectable heavy-fluid side.
   float interfaceY = 0.5 * float(grid.y) * h
     + amplitude * cos(6.28318530718 * waves * p.x / (float(grid.x) * h) + phase);
   float c = smoothstep(-thickness, thickness, p.y - interfaceY);
@@ -149,6 +157,7 @@ export function initRT() {
     width = get('rt-width'),
     waves = get('rt-waves');
   const atwood = get('rt-atwood'),
+    extendedAtwood = get('rt-extended-atwood'),
     amplitude = get('rt-amplitude'),
     acceleration = get('rt-acceleration');
   const interval = get('rt-interval'),
@@ -157,6 +166,7 @@ export function initRT() {
     zoom = get('rt-zoom');
   const arrangement = get('rt-arrangement'),
     viscosity = get('rt-viscosity'),
+    cfl = get('rt-cfl'),
     thickness = get('rt-thickness');
   const scrub = get('rt-scrub'),
     live = get('rt-live'),
@@ -187,6 +197,7 @@ export function initRT() {
   resolution.value = narrow ? '128' : '192';
   width.value = waves.value = narrow ? '2' : '3';
   zoom.value = narrow ? '1' : '1';
+  extendedAtwood.checked = RT_CONFIG.extendedAtwood;
 
   function settings() {
     return {
@@ -194,12 +205,14 @@ export function initRT() {
       width: Number(width.value),
       waves: waves.valueAsNumber,
       atwood: atwood.valueAsNumber,
+      extendedAtwood: extendedAtwood.checked,
       amplitude: amplitude.valueAsNumber,
       gravity: -acceleration.valueAsNumber,
       saveInterval: interval.valueAsNumber,
       maxSnapshots: limit.valueAsNumber,
       heavyAbove: arrangement.value === 'above',
       viscosity: Number(viscosity.value),
+      cfl: cfl.valueAsNumber,
       thickness: Number(thickness.value) / 2,
     };
   }
@@ -266,6 +279,9 @@ export function initRT() {
 
   // Preview the next run without reallocating the current simulation.
   function describe() {
+    const maxAtwood = atwoodMaximum(extendedAtwood.checked);
+    if (atwood.valueAsNumber > maxAtwood) atwood.value = String(maxAtwood);
+    atwood.max = String(maxAtwood);
     const selected = resolution.value;
     for (const option of RT_RESOLUTIONS) {
       const element = [...resolution.options].find((item) => Number(item.value) === option.value);
@@ -463,15 +479,17 @@ export function initRT() {
     resolution,
     waves,
     atwood,
+    extendedAtwood,
     amplitude,
     acceleration,
     interval,
     limit,
     arrangement,
     viscosity,
+    cfl,
     thickness,
   ]) {
-    input.addEventListener(input.tagName === 'SELECT' ? 'change' : 'input', () => {
+    input.addEventListener(input.tagName === 'SELECT' || input.type === 'checkbox' ? 'change' : 'input', () => {
       pause();
       describe();
     });

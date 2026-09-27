@@ -80,6 +80,8 @@
         .rt-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem .75rem; border: 0; padding: 0; margin: 0; min-width: 0; }
         .rt-wide { grid-column: 1 / -1; }
         .rt-controls .rt-fields label { font-size: .9rem; margin-bottom: .3rem; }
+        .rt-controls .rt-fields .rt-checkbox { display: flex; align-items: center; gap: .5rem; cursor: pointer; }
+        .rt-checkbox input { accent-color: var(--site-accent); }
         .rt-fields label output { float: right; font-variant-numeric: tabular-nums; }
         .rt-fields input[type="range"], #rt-scrub { width: 100%; accent-color: var(--site-accent); }
         .rt-fields input[type="range"] { display: block; margin: 0; }
@@ -116,10 +118,9 @@
             .rt-app .rt-controls { grid-column: 1; grid-row: 2; }
         }
     </style>
-  <script type="module" crossorigin src="./assets/rayleighTaylor-DeillvBc.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-Ke7zwH0v.js">
-  <link rel="modulepreload" crossorigin href="./assets/instability-solver-B0NQncYm.js">
-  <link rel="stylesheet" crossorigin href="./assets/style-C9Qhx_CX.css">
+  <script type="module" crossorigin src="./assets/modulepreload-polyfill-Ke7zwH0v.js"></script>
+  <script type="module" crossorigin src="./assets/rt-kh-B0L-zU5f.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/style-BTUHECQE.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
 
@@ -170,6 +171,7 @@
                 <ul id="instability-submenu" class="site-submenu">
                     <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
                     <li><a class="site-submenu-link" href="./rayleigh-taylor.html" aria-current="page">Rayleigh-Taylor</a></li>
+                    <li><a class="site-submenu-link" href="./richtmyer-meshkov.html">Richtmyer-Meshkov</a></li>
                 </ul>
             </li>
             <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
@@ -187,6 +189,7 @@
         </ul>
     </div>
 </nav>
+
 <script data-site-header>
 // Connect navigation without waiting for any application modules.
 (() => {
@@ -398,6 +401,12 @@
                         <summary>Advanced options</summary>
                         <div class="rt-fields">
                             <div class="rt-wide">
+                                <label for="rt-extended-atwood" class="rt-checkbox">
+                                    <input id="rt-extended-atwood" type="checkbox" aria-controls="rt-atwood">
+                                    <span>Allow Atwood up to 0.99</span>
+                                </label>
+                            </div>
+                            <div class="rt-wide">
                                 <label for="rt-arrangement">Heavy material</label>
                                 <select id="rt-arrangement"><option value="above">Above</option><option value="below">Below</option></select>
                             </div>
@@ -417,6 +426,10 @@
                                     <option value="0.03125" selected>Normal</option>
                                     <option value="0.0625">Diffuse</option>
                                 </select>
+                            </div>
+                            <div class="rt-wide">
+                                <label for="rt-cfl">CFL number</label>
+                                <input id="rt-cfl" type="number" min="0.05" max="0.5" step="any" value="0.4" inputmode="decimal" required title="Timestep safety factor from 0.05 to 0.5. Smaller values take smaller steps. Changes apply on reset.">
                             </div>
                         </div>
                     </details>

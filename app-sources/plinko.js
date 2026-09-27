@@ -86,6 +86,7 @@ export function initPlinko() {
         balls.push({ x: pin.x, y: pin.y - 20, targetX: pin.x, targetY: pin.y, row: 0, col: 0, isFinalDrop: false, finalBinIdx: null });
     }
 
+    // Sample one Bernoulli decision per peg row and animate toward the chosen bin.
     function update() {
         const speed = 1.5 + 3.5 * settings.speed / 100;
         for (let i = balls.length - 1; i >= 0; i--) {
@@ -113,7 +114,7 @@ export function initPlinko() {
         }
     }
 
-    // Integrate the normal approximation over each unit-width bin.
+    // Use a continuity-corrected normal approximation to the binomial distribution.
     function normalProbability(i, n, p) {
         const sigma = Math.sqrt(n * p * (1 - p));
         if (!sigma) return 0;

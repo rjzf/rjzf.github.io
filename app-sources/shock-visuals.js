@@ -8,6 +8,7 @@ const pressureFunction = (p, p0, rho, a) =>
     p > p0
         ? (p - p0) * Math.sqrt(2 / ((gamma + 1) * rho) / (p + ((gamma - 1) / (gamma + 1)) * p0))
         : ((2 * a) / (gamma - 1)) * ((p / p0) ** ((gamma - 1) / (2 * gamma)) - 1);
+// Bisect the star-pressure equation on the Sod pressure bracket to double precision.
 let low = 0.1,
     high = 1;
 for (let i = 0; i < 60; i++) {

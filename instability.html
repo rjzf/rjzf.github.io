@@ -71,7 +71,7 @@
         /* Use one disclosure marker across browsers. */
         .instability-notes summary::-webkit-details-marker { display: none; }
     </style>
-  <link rel="stylesheet" crossorigin href="./assets/style-C9Qhx_CX.css">
+  <link rel="stylesheet" crossorigin href="./assets/style-BTUHECQE.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
 
@@ -122,6 +122,7 @@
                 <ul id="instability-submenu" class="site-submenu">
                     <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
                     <li><a class="site-submenu-link" href="./rayleigh-taylor.html">Rayleigh-Taylor</a></li>
+                    <li><a class="site-submenu-link" href="./richtmyer-meshkov.html">Richtmyer-Meshkov</a></li>
                 </ul>
             </li>
             <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
@@ -139,6 +140,7 @@
         </ul>
     </div>
 </nav>
+
 <script data-site-header>
 // Connect navigation without waiting for any application modules.
 (() => {
@@ -277,6 +279,9 @@
             <a href="./rayleigh-taylor.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
                 <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Rayleigh-Taylor <span aria-hidden="true"></span></h2>
             </a>
+            <a href="./richtmyer-meshkov.html" class="block p-6 md:p-8 rounded-2xl bg-slate-50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
+                <h2 class="text-2xl font-bold uppercase text-crimson dark:text-green">Richtmyer-Meshkov <span aria-hidden="true"></span></h2>
+            </a>
         </div>
 
         <!-- Replace the placeholder text in each accordion. -->
@@ -289,6 +294,10 @@
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
                     <p class="mb-6">
                         These instability browser simulations are meant to showcase how different conditions can affect the development of an instability, both in real life and in simulations. They are not meant to be completely physically correct (do NOT use these simulations as results for anything!). Detailed three-dimensional simulations of these instabilities can require substantial computing resources. These simplified examples make some of the same questions accessible in a browser. Having access to this as a pedagogical tool can be really helpful in explaining what researchers care about and what they need to look for. The rest of this accordion section will be a slightly more technical explanation of what is happening. The code can be found in the website’s source repository. Please let me know if you encounter unexpected behavior or crashes. Enjoy!
+                    </p>
+
+                    <p class="mb-6">
+                        <strong>The methods described below apply to the Kelvin-Helmholtz and Rayleigh-Taylor solvers.</strong> The Richtmyer-Meshkov simulation uses a different solver for compressible Euler flow, which includes compression and shock waves. It advances conservative fluid and material fields using HLLC fluxes with an HLLE fallback and SSP-RK2 time integration.
                     </p>
 
                     <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">
@@ -356,7 +365,9 @@
                     </p>
 
                     <p>
-                        Major inspiration for being able to do is <a href="https://fluid-playground.lunar-labs-7954.chatgpt.site/" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green"> credited to this website. </a> While I have wanted to this for a couple years prior to the initial posting of these apps, most of my attempts resulted in bad results. GPU acceleration was a pretty big epiphany for getting this done.
+                        Major inspiration for being able to do is <a href="https://fluid-playground.lunar-labs-7954.chatgpt.site/" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green"> credited to this website.</a>  
+                        And, after further research into the methods I believe it is based <a href="https://github.com/PavelDoGreat/WebGL-Fluid-Simulation" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-crimson dark:hover:text-green"> on this webapp.</a> 
+                        While I have wanted to this for a couple years prior to the initial posting of these apps, most of my attempts resulted in bad results. GPU acceleration was a pretty big epiphany for getting this done.
                     </p>
                 </div>
             </details>

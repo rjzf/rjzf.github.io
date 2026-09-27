@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Richtmyer-Meshkov | Ryan J. Myers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script data-site-theme>
+// Apply the saved theme before page content is displayed.
+(() => {
+    const root = document.documentElement;
+    if (root.dataset.themeReady === 'true') return;
+
+    let savedTheme;
+    try {
+        savedTheme = localStorage.getItem('theme');
+    } catch {
+        savedTheme = null;
+    }
+
+    const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    let userOverride = savedTheme === 'light' || savedTheme === 'dark';
+    const preferredDark = systemTheme?.matches ?? false;
+    const initialDark = savedTheme === 'dark' || (savedTheme !== 'light' && preferredDark);
+
+    // Announce the action available from the theme button.
+    function updateButton() {
+        const label = root.classList.contains('dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        document.getElementById('theme-toggle')?.setAttribute('aria-label', label);
+    }
+
+    root.classList.toggle('dark', initialDark);
+    root.dataset.themeReady = 'true';
+
+    // Handle clicks independently of header and application startup.
+    document.addEventListener('click', event => {
+        const button = event.target.closest?.('.site-header #theme-toggle');
+        if (!button) return;
+        const dark = !root.classList.contains('dark');
+        userOverride = true;
+        root.classList.toggle('dark', dark);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+        try {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        } catch {
+            // Keep the current page usable when preferences cannot be saved.
+        }
+    });
+
+    // Follow system changes until the user chooses a theme.
+    systemTheme?.addEventListener('change', event => {
+        if (userOverride) return;
+        root.classList.toggle('dark', event.matches);
+        updateButton();
+        document.dispatchEvent(new Event('site-theme-change'));
+    });
+    document.addEventListener('site-header-ready', updateButton);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateButton, { once: true });
+    } else {
+        updateButton();
+    }
+})();
+</script>
+    <style>
+        /* Use one disclosure marker across browsers. */
+        .instability-notes summary::-webkit-details-marker { display: none; }
+        /* Reuse the instability appearance without changing shared styles. */
+        .rm-app { display: grid; grid-template-columns: 18rem minmax(0, 1fr); gap: 2rem; align-items: start; padding: clamp(1rem, 3vw, 2rem); border-radius: 1.5rem; background: rgb(0 0 0 / .025); border: 1px solid rgb(0 0 0 / .08); }
+        .dark .rm-app { background: rgb(255 255 255 / .04); border-color: rgb(255 255 255 / .1); }
+        .rm-app .rm-view { grid-column: 2; grid-row: 1; width: 100%; min-width: 0; justify-self: center; }
+        #rm-canvas { display: block; width: 100%; height: auto; max-width: none; aspect-ratio: 2 / 1; border: 1px solid #888; border-radius: .25rem; }
+        .rm-app .rm-controls { grid-column: 1; grid-row: 1; min-width: 0; font-size: 1rem; }
+        .rm-actions { display: flex; gap: .75rem; margin-bottom: 1.5rem; }
+        .rm-actions button { min-height: 2.75rem; flex: 1; border-radius: .6rem; padding: .5rem .75rem; font-weight: 700; background: var(--site-accent); color: white; }
+        .dark .rm-actions button { color: black; }
+        .rm-actions button:disabled { opacity: .45; cursor: default; }
+        .rm-controls label { display: block; margin-bottom: .5rem; font-weight: 700; }
+        .rm-controls select { width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid #888; border-radius: .4rem; background: white; color: black; }
+        .dark .rm-controls select { background: #171719; color: white; }
+        .rm-setting { display: flex; justify-content: space-between; gap: .5rem; margin-top: 1.25rem; }
+        .rm-legend { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; font-size: .9rem; }
+        .rm-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+        .rm-legend i { width: .8rem; height: .8rem; border-radius: .15rem; border: 1px solid rgb(127 127 127 / .4); }
+        .rm-heavy { background: rgb(245 20 31); }
+        .rm-mixed { background: rgb(133 41 140); }
+        .rm-light { background: rgb(20 61 250); }
+        .rm-clock { display: flex; gap: .35rem; margin-top: 1.5rem; font-variant-numeric: tabular-nums; }
+        #rm-fps { margin-left: auto; opacity: .7; }
+        #rm-status { margin-top: .5rem; min-height: 1.5rem; }
+        #rm-status[data-error="true"] { color: #b91c1c; }
+        .dark #rm-status[data-error="true"] { color: #fca5a5; }
+        .rm-controls :is(button, select):focus-visible { outline: 2px solid var(--site-accent); outline-offset: 3px; }
+        
+        /* Keep controls beside the view and below it on narrow screens. */
+        .rm-viewport { width: 100%; max-height: 72svh; overflow: auto; }
+        .rm-stage { display: flex; justify-content: center; width: -moz-max-content; width: max-content; min-width: 100%; }
+        .rm-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem .75rem; border: 0; padding: 0; margin: 0; min-width: 0; }
+        .rm-wide { grid-column: 1 / -1; }
+        .rm-controls .rm-fields label { font-size: .9rem; margin-bottom: .3rem; }
+        .rm-fields label output { float: right; font-variant-numeric: tabular-nums; }
+        .rm-fields input[type="range"], #rm-scrub { width: 100%; accent-color: var(--site-accent); }
+        .rm-fields input[type="range"] { display: block; margin: 0; }
+        .rm-fields .rm-setting { margin: -.25rem 0 0; font-size: .9rem; }
+        .rm-controls select, .rm-controls input[type="number"], #rm-zoom { width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid #888; border-radius: .4rem; background: white; color: black; font: inherit; font-size: .95rem; }
+        .dark .rm-controls input[type="number"], .dark #rm-zoom { background: #171719; color: white; }
+        .rm-fields input[aria-invalid="true"] { border-color: #bb2323; }
+        .dark .rm-fields input[aria-invalid="true"] { border-color: #ff9292; }
+        #rm-pending, #rm-memory-limit, #rm-input-error { font-size: .85rem; margin-top: .5rem; }
+        #rm-input-error { color: #a21a1a; }
+        .dark #rm-input-error { color: #ff9292; }
+        /* Align the history readouts below the slider. */
+        .rm-history-info { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .5rem .75rem; margin-top: .5rem; }
+        .rm-view .rm-history-info p { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+        .rm-history-info #rm-history-end, .rm-history-info .rm-memory { text-align: right; font-size: .85rem; }
+        .rm-history-info #rm-status { grid-column: 1 / -1; }
+        .rm-history-info #rm-coordinates { font-size: .85rem; opacity: .75; }
+        .rm-toolbar .rm-actions { margin-bottom: .75rem; }
+        .rm-display-options { display: flex; flex-wrap: wrap; gap: .5rem .75rem; align-items: center; margin-bottom: .75rem; }
+        .rm-display-options label { font-size: .9rem; font-weight: 700; }
+        .rm-display-options .rm-checkbox { margin-right: auto; }
+        .rm-display-option { display: flex; align-items: center; gap: .5rem; }
+        .rm-display-option select { flex: 0 0 5rem; }
+        #rm-zoom { width: 5rem; }
+        .rm-playback { margin-top: .5rem; font-variant-numeric: tabular-nums; }
+        .rm-playback .rm-clock { margin-top: .5rem; align-items: center; flex-wrap: wrap; }
+        .rm-time-row { -moz-column-gap: 1rem; column-gap: 1rem; }
+        .rm-time-row > span { white-space: nowrap; }
+        .rm-display-fields { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgb(127 127 127 / .4); }
+        .rm-display-fields label { display: block; font-size: .9rem; font-weight: 700; margin-bottom: .3rem; }
+        .rm-display-fields select { width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid #888; border-radius: .4rem; background: white; color: black; font: inherit; font-size: .95rem; }
+        .dark .rm-display-fields select { background: #171719; color: white; }
+        .rm-display-fields .rm-legend, .rm-display-fields .rm-caption { margin: 0; }
+        .rm-live-control { display: flex; align-items: center; gap: .35rem; margin-left: auto; }
+        #rm-view-state { opacity: .7; font-size: .85rem; }
+        #rm-live, #rm-advance, #rm-impact { min-height: 2.75rem; padding: .35rem .65rem; border: 1px solid var(--site-accent); border-radius: .4rem; font-weight: 700; }
+        #rm-live:disabled, #rm-scrub:disabled, #rm-advance:disabled, #rm-impact:disabled { opacity: .4; cursor: default; }
+        #rm-saved { font-size: .85rem; opacity: .75; }
+        .rm-app :is(button, select, input, summary, [tabindex]):focus-visible { outline: 2px solid var(--site-accent); outline-offset: 3px; }
+        .rm-view #rm-status { font-size: .9rem; margin-top: .5rem; }
+        .rm-advanced { border-top: 1px solid rgb(127 127 127 / .4); padding-top: .75rem; }
+        .rm-advanced summary { cursor: pointer; font-weight: 700; min-height: 2.75rem; padding: .5rem 0; }
+        .rm-advanced .rm-fields { margin-top: .5rem; }
+        .rm-app [hidden] { display: none; }
+        @media (max-width: 48rem) {
+            .rm-app { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+            .rm-app .rm-view { grid-column: 1; grid-row: 1; }
+            .rm-app .rm-controls { grid-column: 1; grid-row: 2; }
+            .rm-display-options .rm-checkbox { flex-basis: 100%; }
+        }
+        /* Keep RM display controls aligned with the instability toolbar. */
+        #rm-canvas { image-rendering: pixelated; flex: none; }
+        .rm-stage { width: 100%; }
+        #rm-speed { width: 5rem; min-height: 2.75rem; padding: .5rem; border: 1px solid #888; border-radius: .4rem; background: white; color: black; font: inherit; font-size: .95rem; }
+        .dark #rm-speed { background: #171719; color: white; }
+        .rm-checkbox { display: flex; align-items: center; gap: .5rem; cursor: pointer; font-size: .9rem; }
+        .rm-checkbox input { accent-color: var(--site-accent); }
+        .rm-controls .rm-display-label { margin-top: 1rem; }
+        .rm-heavy { background: var(--rm-heavy, rgb(245 20 31)); }
+        .rm-mixed { background: var(--rm-mixed, rgb(133 41 140)); }
+        .rm-light { background: var(--rm-light, rgb(20 61 250)); }
+        .rm-caption { font-size: .85rem; opacity: .75; margin-top: .5rem; overflow-wrap: anywhere; }
+    </style>
+  <script type="module" crossorigin src="./assets/richtmyer-meshkov-B77DR1l-.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-Ke7zwH0v.js">
+  <link rel="stylesheet" crossorigin href="./assets/style-BTUHECQE.css">
+</head>
+<body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page">
+    <style>
+    /* Keep desktop arrows out of view until keyboard focus needs them. */
+    @media (min-width: 80rem) {
+        .site-header .site-nav-group > .site-nav-link { padding-right: .75rem; }
+        .site-header .site-submenu-toggle:not(:focus-visible) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+</style>
+<nav class="site-header top-0 z-50 w-full bg-white dark:bg-black border-b border-black/5 dark:border-white/5" data-position="sticky" aria-label="Primary navigation">
+    <a href="#main-content" class="site-skip-link">Skip to content</a>
+    <div class="site-header-bar">
+        <div class="site-brand">
+            <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 text-xl md:text-2xl font-bold tracking-tighter text-crimson dark:text-green whitespace-nowrap transition-all">
+                Ryan J. Myers
+            </a>
+        </div>
+
+        <div class="site-menu-control">
+            <button id="menu-toggle" type="button" aria-label="Open navigation" aria-controls="mobile-menu" aria-expanded="false" class="h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all" hidden>
+                <span class="text-2xl" aria-hidden="true">☰</span>
+            </button>
+        </div>
+
+        <div class="site-theme-control">
+            <button id="theme-toggle" type="button" aria-label="Switch color theme" class="group h-11 w-11 flex items-center justify-center bg-transparent hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg active:scale-[0.98] transition-all">
+                <span class="dark:hidden text-xl drop-shadow-[0_0_8px_rgba(255,223,0,0.8)]" aria-hidden="true">💡</span>
+                <span class="hidden dark:inline text-xl grayscale opacity-30 group-hover:opacity-100 transition-opacity" aria-hidden="true">💡</span>
+            </button>
+        </div>
+        <!-- Edit this list to update navigation on every page. -->
+        <ul id="mobile-menu" class="site-nav-links bg-white dark:bg-black border-t border-slate-100 dark:border-white/5">
+            <li><a href="./index.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Home</a></li>
+            <li><a href="./about.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">About</a></li>
+            <li class="site-nav-group">
+                <a href="./instability.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="location">Instability</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Instability pages" aria-controls="instability-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="instability-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
+                    <li><a class="site-submenu-link" href="./rayleigh-taylor.html">Rayleigh-Taylor</a></li>
+                    <li><a class="site-submenu-link" href="./richtmyer-meshkov.html" aria-current="page">Richtmyer-Meshkov</a></li>
+                </ul>
+            </li>
+            <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Shock Tube</a></li>
+            <li><a href="./pipe-flow.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Pipe Flow</a></li>
+            <li class="site-nav-group">
+                <a href="./sandbox.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Sandbox</a>
+                <button class="site-submenu-toggle" type="button" aria-label="Toggle Sandbox pages" aria-controls="sandbox-submenu" aria-expanded="false" hidden><span aria-hidden="true">▾</span></button>
+                <ul id="sandbox-submenu" class="site-submenu">
+                    <li><a class="site-submenu-link" href="./logistic-map.html">Logistic Map</a></li>
+                    <li><a class="site-submenu-link" href="./plinko.html">Plinko</a></li>
+                    <li><a class="site-submenu-link" href="./black-scholes.html">Black-Scholes-Merton Model</a></li>
+                </ul>
+            </li>
+            <li><a href="./other.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg">Other</a></li>
+        </ul>
+    </div>
+</nav>
+
+<script data-site-header>
+// Connect navigation without waiting for any application modules.
+(() => {
+    const header = document.querySelector('.site-header');
+    const button = header?.querySelector('#menu-toggle');
+    const links = header?.querySelector('#mobile-menu');
+    if (!button || !links || header.dataset.menuReady === 'true') return;
+
+    // Keep footer years current without changing their appearance.
+    function updateFooterYear() {
+        const year = String(new Date().getFullYear());
+        document.querySelectorAll('[data-current-year]').forEach(element => {
+            element.textContent = year;
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateFooterYear, { once: true });
+    else updateFooterYear();
+    window.addEventListener('pageshow', updateFooterYear);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) updateFooterYear();
+    });
+
+    const desktop = window.matchMedia('(min-width: 80rem)');
+
+    const groups = [...header.querySelectorAll('.site-nav-group')];
+
+    // Show one submenu and keep its disclosure state in sync.
+    function setSubmenu(group, expanded) {
+        group.querySelector('.site-submenu').hidden = !expanded;
+        group.querySelector('.site-submenu-toggle').setAttribute('aria-expanded', String(expanded));
+    }
+
+    function closeSubmenus(except) {
+        groups.forEach(group => {
+            if (group !== except) setSubmenu(group, false);
+        });
+    }
+
+    groups.forEach(group => {
+        const toggle = group.querySelector('.site-submenu-toggle');
+        const submenu = group.querySelector('.site-submenu');
+        const open = () => {
+            closeSubmenus(group);
+            setSubmenu(group, true);
+        };
+        toggle.addEventListener('click', () => {
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            closeSubmenus();
+            setSubmenu(group, !expanded);
+        });
+        group.addEventListener('pointerenter', event => {
+            if (desktop.matches && event.pointerType === 'mouse') open();
+        });
+        group.addEventListener('pointerleave', event => {
+            if (event.pointerType === 'mouse' && !group.contains(document.activeElement)) setSubmenu(group, false);
+        });
+        group.addEventListener('focusout', event => {
+            if (!group.contains(event.relatedTarget)) setSubmenu(group, false);
+        });
+        group.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' && !submenu.contains(event.target)) {
+                event.preventDefault();
+                open();
+                submenu.querySelector('a').focus();
+            }
+            if (event.key === 'Escape' && !submenu.hidden) {
+                event.preventDefault();
+                event.stopPropagation();
+                setSubmenu(group, false);
+                toggle.focus();
+            }
+        });
+        setSubmenu(group, false);
+        toggle.hidden = false;
+    });
+
+    document.addEventListener('click', event => {
+        if (!groups.some(group => group.contains(event.target))) closeSubmenus();
+    });
+
+    // Keep visibility and the button's announced state together.
+    function setExpanded(expanded) {
+        if (!expanded) closeSubmenus();
+        header.dataset.menuOpen = String(expanded);
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', expanded ? 'Close navigation' : 'Open navigation');
+    }
+
+    button.addEventListener('click', () => {
+        setExpanded(button.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // Close navigation before following its destination.
+    links.addEventListener('click', event => {
+        if (event.target.closest('a')) setExpanded(false);
+    });
+
+    // Return focus to the menu button when Escape closes the list.
+    header.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+        event.preventDefault();
+        setExpanded(false);
+        button.focus();
+    });
+
+    // Keep focus out of links that become collapsed after resizing.
+    desktop.addEventListener('change', () => {
+        if (!desktop.matches && links.contains(document.activeElement)) button.focus();
+        else groups.forEach(group => {
+            if (group.querySelector('.site-submenu').contains(document.activeElement)) group.querySelector('.site-submenu-toggle').focus();
+        });
+        setExpanded(false);
+    });
+
+    // Move keyboard focus as well as the scroll position past navigation.
+    header.querySelector('.site-skip-link')?.addEventListener('click', () => {
+        setExpanded(false);
+        document.getElementById('main-content')?.focus({ preventScroll: true });
+    });
+
+    setExpanded(false);
+    header.dataset.menuReady = 'true';
+    button.hidden = false;
+    document.dispatchEvent(new Event('site-header-ready'));
+})();
+</script>
+    <main id="main-content" tabindex="-1" class="max-w-6xl mx-auto px-6 py-12 flex-grow w-full">
+        <h1 class="text-4xl md:text-5xl font-bold text-center mb-8 text-crimson dark:text-green">Richtmyer-Meshkov</h1>
+        <section class="rm-app" aria-label="Richtmyer-Meshkov simulation">
+            <div class="rm-view">
+                <div class="rm-toolbar">
+                    <div class="rm-actions">
+                        <button id="rm-run" type="button" aria-pressed="false" disabled>Run</button>
+                        <button id="rm-reset" type="button">Reset</button>
+                    </div>
+                    <div class="rm-display-options">
+                        <label for="rm-overlay" class="rm-checkbox"><input id="rm-overlay" type="checkbox" checked> Show shocks</label>
+                        <div class="rm-display-option">
+                            <label for="rm-speed">Speed</label>
+                            <select id="rm-speed"><option value="0.1">0.1&times;</option><option value="0.25" selected>0.25&times;</option><option value="0.5">0.5&times;</option><option value="1">1&times;</option><option value="2">2&times;</option></select>
+                        </div>
+                        <div class="rm-display-option">
+                            <label for="rm-zoom">Zoom</label>
+                            <select id="rm-zoom" title="Change the display size without changing the simulation grid."><option value="0.5">0.5&times;</option><option value="1" selected>1&times;</option><option value="2">2&times;</option></select>
+                        </div>
+                    </div>
+                </div>
+                <div id="rm-viewport" class="rm-viewport" tabindex="0" role="region" aria-label="Simulation view">
+                    <div id="rm-stage" class="rm-stage">
+                        <canvas id="rm-canvas" width="1024" height="512" role="img" aria-label="Compressible flow and optional calculated pressure-gradient shock overlay.">WebGL 2 is needed to display this simulation.</canvas>
+                    </div>
+                </div>
+                <div class="rm-playback">
+                    <div class="rm-clock rm-time-row">
+                        <span id="rm-time">t = 0.000</span>
+                        <span title="Time measured from nominal shock impact. Zero at impact, negative before impact.">t* = <span id="rm-impact-time" aria-label="Time from nominal impact"></span></span>
+                        <span id="rm-fps"></span>
+                    </div>
+                    <div class="rm-clock">
+                        <button id="rm-advance" type="button" disabled title="Advance the live simulation to the next saved time, then pause.">Next snapshot</button>
+                        <button id="rm-impact" type="button" disabled title="Compute forward to nominal shock arrival, then pause. Uses full speed and preserves scheduled snapshots.">Advance to impact</button>
+                        <span class="rm-live-control">
+                            <span id="rm-view-state">Live</span>
+                            <button id="rm-live" type="button" disabled>Live</button>
+                        </span>
+                    </div>
+                    <label for="rm-scrub" class="sr-only">Saved time</label>
+                    <input id="rm-scrub" type="range" min="0" max="0" step="1" value="0" disabled>
+                    <div class="rm-history-info">
+                        <p id="rm-saved">No snapshots</p>
+                        <p id="rm-history-end"></p>
+                        <p id="rm-coordinates"></p>
+                        <p class="rm-memory">Saved buffers <span id="rm-memory"></span></p>
+                        <p id="rm-status" role="status">Preparing simulation...</p>
+                    </div>
+                </div>
+                <fieldset class="rm-fields rm-display-fields">
+                    <legend class="sr-only">Display settings</legend>
+                    <div>
+                        <label for="rm-field">Display</label>
+                        <select id="rm-field"><option value="material" selected>Material fraction</option><option value="density">Density</option><option value="pressure">Pressure</option></select>
+                    </div>
+                    <div>
+                        <label for="rm-palette">Colors</label>
+                        <select id="rm-palette"><option value="red-blue">Red / Blue</option><option value="orange-blue">Orange / Blue</option><option value="magenta-teal">Magenta / Teal</option><option value="black-white">Black / White</option><option value="navy-gold">Navy / Gold</option><option value="purple-mint">Purple / Mint</option></select>
+                    </div>
+                    <div class="rm-wide">
+                        <div id="rm-material-legend" class="rm-legend" aria-label="Material colors">
+                            <span><i class="rm-heavy" aria-hidden="true"></i>Heavy</span>
+                            <span><i class="rm-mixed" aria-hidden="true"></i>Mixed</span>
+                            <span><i class="rm-light" aria-hidden="true"></i>Light</span>
+                        </div>
+                        <p id="rm-legend" class="sr-only"></p>
+                        <p id="rm-field-legend" class="rm-caption" hidden></p>
+                    </div>
+                </fieldset>
+                <noscript>Enable JavaScript to run this simulation.</noscript>
+            </div>
+            <div class="rm-controls">
+                <fieldset id="rm-setup" class="rm-fields">
+                    <legend class="sr-only">Settings for the next run</legend>
+                    <div class="rm-wide">
+                        <label for="rm-waves">Waves <output id="rm-waves-value" for="rm-waves">2</output></label>
+                        <input id="rm-waves" type="range" min="1" max="4" step="1" value="2">
+                    </div>
+                    <div class="rm-wide">
+                        <label for="rm-atwood">Atwood number <output id="rm-atwood-value" for="rm-atwood">0.5</output></label>
+                        <input id="rm-atwood" type="range" min="0" max="0.8" step="0.01" value="0.5">
+                    </div>
+                    <div class="rm-wide">
+                        <label for="rm-amplitude">Amplitude / wavelength <output id="rm-amplitude-value" for="rm-amplitude">0.08</output></label>
+                        <input id="rm-amplitude" type="range" min="0" max="0.15" step="0.01" value="0.08">
+                    </div>
+                    <div class="rm-wide">
+                        <label for="rm-mach">Shock strength (Mach) <output id="rm-mach-value" for="rm-mach">2.0</output></label>
+                        <input id="rm-mach" type="range" min="1.1" max="2.5" step="0.1" value="2.0">
+                    </div>
+                    <div class="rm-wide">
+                        <label for="rm-direction">Shock direction</label>
+                        <select id="rm-direction"><option value="light-heavy">Light to heavy</option><option value="heavy-light">Heavy to light</option></select>
+                    </div>
+                    <div class="rm-wide">
+                        <label for="rm-grid">Resolution</label>
+                        <select id="rm-grid"><option value="128">Lowest (128 &times; 32)</option><option value="256">Low (256 &times; 64)</option><option value="512" selected>Medium (512 &times; 128)</option><option value="1024">High (1024 &times; 256)</option></select>
+                    </div>
+                    <div>
+                        <label for="rm-interval">Save every</label>
+                        <input id="rm-interval" type="number" min="0.01" max="1" step="any" value="0.25" inputmode="decimal" required title="Interval in simulated time, from 0.01 to 1.">
+                    </div>
+                    <div>
+                        <label for="rm-limit">Snapshots</label>
+                        <input id="rm-limit" type="number" min="2" max="50" step="1" value="30" inputmode="numeric" required title="Total saved states, including the initial state.">
+                    </div>
+                    <details class="rm-wide rm-advanced">
+                        <summary>Advanced options</summary>
+                        <div class="rm-fields">
+                            <div class="rm-wide">
+                                <label for="rm-width">Interface width</label>
+                                <select id="rm-width"><option value="0.0125">Sharp</option><option value="0.025" selected>Normal</option><option value="0.075">Diffuse</option></select>
+                            </div>
+                            <div class="rm-wide">
+                                <label for="rm-domain">Domain</label>
+                                <select id="rm-domain"><option value="4">4 × 1</option><option value="8">8 × 1 (boundary check)</option></select>
+                            </div>
+                            <div class="rm-wide">
+                                <label for="rm-frame">View / reference frame</label>
+                                <select id="rm-frame" title="Changes apply on reset."><option value="contact">Follow interface (moving frame)</option><option value="lab">Whole domain (stationary frame)</option></select>
+                            </div>
+                            <div class="rm-wide">
+                                <label for="rm-cfl">CFL number</label>
+                                <input id="rm-cfl" type="number" min="0.05" max="0.5" step="any" value="0.35" inputmode="decimal" required title="Timestep safety factor from 0.05 to 0.5. Smaller values take smaller steps. Changes apply on reset.">
+                            </div>
+                        </div>
+                    </details>
+                </fieldset>
+                <p id="rm-pending" hidden>Changes apply on reset.</p>
+                <p id="rm-input-error" role="alert" hidden></p>
+            </div>
+        </section>
+        <div class="instability-notes space-y-4 mt-8">
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">What is this?</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">&darr;</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white space-y-4">
+                    <p>
+                        The Richtmyer-Meshkov instability develops when a shock wave interacts with a disturbed boundary between materials of different densities. An example would be a shock traveling through a tube containing two different gases, with a small ripple in the boundary separating them. The shock compresses the gases and sets them in motion. Rather than simply carrying the ripple along unchanged, the interaction can cause it to grow, fold, and eventually roll up into more complicated structures.
+                    </p>
+                    <p>
+                        If you have tried the Rayleigh-Taylor app, some of these shapes will probably look familiar. The main difference is how the motion gets started. In the RT example, acceleration continues to drive the instability as the heavy material falls and the light material rises. In RM, the shock provides a brief, strong acceleration. The motion created during that interaction continues after the shock has passed. You can think of it as giving the interface a sudden push instead of continuously pulling on it.
+                    </p>
+                    <p>
+                        The wavy boundary is important because the pressure change across the shock and the density change across the interface do not point in the same direction everywhere. This misalignment generates rotation in the fluid, which helps the interface develop its characteristic rolling shapes. The technical name for this is baroclinic vorticity generation. As the materials stretch and fold around each other, the flow can become increasingly complicated and may eventually develop turbulence. Whether the shock travels from heavy to light material or light to heavy material also affects the direction of the generated rotation. In the heavy to light case, the ripple can first flatten and then grow in the opposite direction, with its original peaks becoming troughs and its troughs becoming peaks. This reversal of the ripple is called phase inversion.
+                        (<a href="https://www.annualreviews.org/content/journals/10.1146/annurev.fluid.34.090101.162238" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Review of the Richtmyer-Meshkov instability</a>)
+                    </p>
+                    <p>
+                        This app is meant to make that sequence easier to see. You can watch the shock approach, cross the interface, and leave a growing disturbance behind. Changing the initial conditions lets you explore which parts of that development depend on the shock, which depend on the materials, and which depend on how well the simulation resolves the flow.
+                    </p>
+                </div>
+            </details>
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">How to use</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">&darr;</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white space-y-4">
+                    <p>
+                        I would start by running the default case and watching what happens before changing anything. You can use "Advance to impact" to calculate forward to the estimated time when the shock reaches the average interface position. Since the interface is wavy, some parts encounter the shock earlier than others. The time labeled t* is measured relative to that estimated arrival, so negative values mean before impact and positive values mean after it.
+                    </p>
+                    <p>
+                        During the early development of a small disturbance, the canonical Richtmyer-Meshkov instability model predicts that its amplitude grows approximately linearly with time. This is different from the exponential growth associated with the ideal RT growing mode. A common way to express the initial growth rate is:
+                    </p>
+                    <p class="my-6 text-center text-lg font-serif">
+                        <i>&eta;&#x0307;</i> &approx; <i>k A</i> &Delta;<i>U</i> <i>&eta;</i>
+                    </p>
+                    <p>
+                        Here, <i>&eta;</i> is the ripple amplitude just after compression, and <i>&eta;&#x0307;</i> is its initial rate of growth. The wavenumber is <i>k</i> = 2&pi; / <i>&lambda;</i>, where <i>&lambda;</i> is the wavelength. <i>A</i>, the Atwood number, describes the density contrast after the shock, with its sign determined by the material ordering, and &Delta;<i>U</i> is the change in interface velocity. These are not all the same as the initial values selected in the controls. The shock changes the conditions as it passes through. The Atwood slider specifies the initial contrast as a nonnegative value, while Shock direction selects the material ordering. This equation is useful for understanding the trends, but the app calculates the fluid motion rather than using this expression to animate the interface.
+                        (<a href="https://doi.org/10.1002/cpa.3160130207" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Richtmyer’s original analysis</a>)
+                    </p>
+                    <p>
+                        The main settings let you explore different parts of this interaction:
+                    </p>
+                    <ul class="list-disc list-inside space-y-3 mb-6 ml-2">
+                        <li>
+                            <strong>Shock strength (Mach)</strong> sets the shock speed relative to the sound speed in the material ahead of it. A higher Mach number produces stronger compression and generally gives the interface a larger velocity change.
+                            (<a href="https://www.grc.nasa.gov/WWW/k-12/airplane/normal.html" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Normal shock equations</a>)
+                        </li>
+                        <li>
+                            <strong>Atwood number</strong> sets the initial density difference relative to the sum of the densities. Zero means the materials have equal densities, which removes the density contrast driving this instability. The shock still travels through and compresses the fluid. The default value of 0.5 makes the heavy material three times as dense as the light material.
+                        </li>
+                        <li>
+                            <strong>Shock direction</strong> chooses whether the shock travels from light material into heavy material or the other way around. The incident shock always travels from left to right in this app. Reversing the material order changes the interaction and can cause the ripple to initially flatten and reverse before growing.
+                        </li>
+                        <li>
+                            <strong>Waves</strong> sets how many ripples fit across the domain. More waves means shorter wavelengths. Because amplitude is specified relative to wavelength, adding waves also reduces their absolute height.
+                        </li>
+                        <li>
+                            <strong>Amplitude / wavelength</strong> sets how large each ripple is compared with its wavelength. Larger values start with a more distorted interface and can reach the folding stage sooner.
+                        </li>
+                        <li>
+                            <strong>Resolution</strong> controls how much detail the grid can represent. A coarse grid may smooth away smaller structures. Try repeating the same case at different resolutions to see which features remain consistent.
+                        </li>
+                    </ul>
+                    <p>
+                        Material fraction is the clearest display for watching the interface deform. Density and Pressure help show what the shock does to the surrounding fluid. "Show shocks" highlights pressure gradients, so it can also reveal pressure features that are not shocks. Intermediate material colors represent the relative material masses in a cell.
+                    </p>
+                </div>
+            </details>
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Methods</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">&darr;</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white space-y-4">
+                    <p>
+                        The general motivation and setup for these examples are described on the
+                        <a href="./instability.html" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Instability page</a>.
+                        This app uses a different physics solver based on the compressible Euler equations, allowing it to represent shock waves and compression. Both materials use an ideal gas equation of state with a fixed ratio of specific heats of 1.4.
+                        (<a href="https://www.clawpack.org/riemann_book/html/Euler_approximate.html" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Euler equations and ideal gas flow</a>)
+                    </p>
+
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-crimson dark:text-green">How the calculations work</h3>
+                    <p>
+                        The domain is divided into a fixed grid of cells. Each cell stores the mass of each material, momentum, and total energy, all per unit volume. Pressure is calculated from the internal energy remaining after subtracting the kinetic energy. The solver advances these quantities by calculating their exchanges across cell boundaries. Neighboring cells use the same exchange at their shared boundary, so what leaves one cell enters the next. This is the basis of the conservative finite volume method.
+                    </p>
+                    <p>
+                        The materials begin on opposite sides of a wavy interface with a smooth transition defined by a hyperbolic tangent function. An already formed planar shock starts to the left of the interface. The conditions behind the shock are calculated from the selected Mach number using the normal shock jump relations, which connect density, pressure, and velocity through conservation of mass, momentum, and energy.
+                        (<a href="https://www.grc.nasa.gov/WWW/k-12/airplane/normal.html" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Normal shock equations</a>)
+                    </p>
+
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-crimson dark:text-green">Calculating the exchanges between cells</h3>
+                    <p>
+                        The solver estimates conditions at cell boundaries using a linear reconstruction of the values stored in neighboring cells. As in the other instability apps, a monotonized central slope limiter reduces artificial oscillations near sharp changes. This gives second order spatial reconstruction in smooth regions, with more limited reconstruction near discontinuities.
+                        (<a href="https://zingale.github.io/comp_astro_tutorial/advection_euler/advection/advection-partIII.html" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">An illustrated explanation of slope limiting</a>)
+                    </p>
+                    <p>
+                        The estimated states on either side of a boundary form a local Riemann problem. The HLLC solver approximates the resulting wave structure using two outer signal speeds and a middle contact wave. Including the contact wave helps preserve changes in density and material composition. If its intermediate states fail the validity checks, the solver uses the more dissipative HLLE approximation at that boundary. Both methods introduce numerical smoothing, even though physical viscosity is not included.
+                        (<a href="https://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">HLLC solver and wave structure</a>)
+                    </p>
+
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-crimson dark:text-green">Moving forward in time</h3>
+                    <p>
+                        The solution advances using the same two stage SSP RK2 method described on the Instability page. The first stage produces a trial update. The second advances that trial state again and averages the result with the original state. Here, the material masses, momentum, and energy all advance through these stages together.
+                        (<a href="https://gkeyll.readthedocs.io/en/latest/dev/ssp-rk.html#ssp-rk2" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">SSP RK2 time integration</a>,
+                        also described as <a href="https://en.wikipedia.org/wiki/Heun%27s_method" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Heun’s method</a>)
+                    </p>
+                    <p>
+                        The timestep depends on fluid velocity, sound speed, and cell size. The CFL number defaults to 0.35 and can be adjusted from 0.05 to 0.5 in Advanced options. Changes apply on reset. Updates are checked for finite values, positive density and pressure, and acceptable material fractions. Failed steps are retried using first order reconstruction with HLLE fluxes, followed by smaller timesteps if needed. If recovery fails, the last accepted state remains available for inspection.
+                        (<a href="https://en.wikipedia.org/wiki/Courant%E2%80%93Friedrichs%E2%80%93Lewy_condition" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">CFL condition</a>)
+                    </p>
+
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-crimson dark:text-green">Boundaries and reference frame</h3>
+                    <p>
+                        The top and bottom boundaries are periodic. At the left and right boundaries, the solver copies the adjacent interior state. This permits flow through the boundaries but does not eliminate all wave reflections. The wider domain provides additional space for checking their influence.
+                        (<a href="https://en.wikipedia.org/wiki/Boundary_conditions_in_computational_fluid_dynamics" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Boundary conditions</a>)
+                    </p>
+                    <p>
+                        The moving frame uses an estimated contact velocity from a separate planar shock interaction calculation. Initial velocities and total energies are transformed consistently into that frame, keeping the interface approximately in place after impact. This is a fixed reference speed rather than continuous tracking of the distorted interface.
+                    </p>
+
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-crimson dark:text-green">How this runs in the browser</h3>
+                    <p>
+                        WebGL 2 hardware acceleration is implemented similarly to the other instability apps, allowing grid calculations to run in parallel on the GPU. The NVIDIA fluid simulation explanation linked on the Instability page provides background on this approach.
+                        (<a href="https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">GPU fluid simulation</a>)
+                    </p>
+                </div>
+            </details>
+            <details class="group bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden transition-all">
+                <summary class="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-crimson dark:text-green">
+                    <h2 class="text-2xl font-bold uppercase tracking-wider">Resources</h2>
+                    <span class="text-2xl group-open:rotate-180 transition-transform" aria-hidden="true">&darr;</span>
+                </summary>
+                <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="https://en.wikipedia.org/wiki/Richtmyer%E2%80%93Meshkov_instability" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia page for the Richtmyer-Meshkov instability</a>
+                        </li>
+                        <li>
+                            <a href="https://www.annualreviews.org/content/journals/10.1146/annurev.fluid.34.090101.162238" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Brouillette’s review of the Richtmyer-Meshkov instability</a>
+                        </li>
+                        <li>
+                            <a href="https://doi.org/10.1002/cpa.3160130207" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Richtmyer’s original 1960 paper on shock acceleration of a material interface</a>
+                        </li>
+                        <li>
+                            <a href="https://www.grc.nasa.gov/WWW/k-12/airplane/normal.html" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">NASA’s explanation of normal shock equations</a>
+                        </li>
+                        <li>
+                            <a href="https://www.clawpack.org/riemann_book/html/Euler_approximate.html" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Clawpack’s explanation of approximate Riemann solvers for the Euler equations</a>
+                        </li>
+                        <li>
+                            <a href="https://doi.org/10.1007/BF01414629" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Original technical paper for the HLLC solver by Toro, Spruce, and Speares</a>
+                        </li>
+                        <li>
+                            <a href="https://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Toro’s lecture on the HLLC solver and its wave structure</a>
+                        </li>
+                        <li>
+                            <a href="https://zingale.github.io/comp_astro_tutorial/advection_euler/advection/advection-partIII.html" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">An illustrated explanation of reconstruction and slope limiting</a>
+                        </li>
+                        <li>
+                            <a href="https://gkeyll.readthedocs.io/en/latest/dev/ssp-rk.html#ssp-rk2" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">SSP RK2 time integration</a>
+                        </li>
+                        <li>
+                            <a href="https://en.wikipedia.org/wiki/Courant%E2%80%93Friedrichs%E2%80%93Lewy_condition" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">Wikipedia page for the CFL condition</a>
+                        </li>
+                        <li>
+                            <a href="https://en.wikipedia.org/wiki/Boundary_conditions_in_computational_fluid_dynamics" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">An introduction to boundary conditions in computational fluid dynamics</a>
+                        </li>
+                        <li>
+                            <a href="https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu" target="_blank" rel="noopener noreferrer" class="underline decoration-black/20 hover:text-crimson dark:hover:text-green transition-colors">NVIDIA’s explanation of fluid simulation on the GPU</a>
+                        </li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+    </main>
+    <footer class="fixed bottom-2 right-6 z-10 site-footer">
+        <p class="text-[9px] uppercase tracking-[0.3em] opacity-25 hover:opacity-80 transition-opacity text-right whitespace-nowrap">
+            © <span data-current-year>2026</span> Ryan Myers. Code under MIT.
+        </p>
+    </footer>
+</body>
+</html>

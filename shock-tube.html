@@ -146,8 +146,8 @@
         }
     </style>
   <script type="module" crossorigin src="./assets/modulepreload-polyfill-Ke7zwH0v.js"></script>
-  <script type="module" crossorigin src="./assets/main-Cf719Hro.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/style-C9Qhx_CX.css">
+  <script type="module" crossorigin src="./assets/sandbox-apps-Cz-zKyTQ.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/style-BTUHECQE.css">
 </head>
 <body class="font-academic bg-white text-black dark:bg-black dark:text-white transition-colors duration-300 min-h-screen flex flex-col site-page shock-tube-page">
 
@@ -198,6 +198,7 @@
                 <ul id="instability-submenu" class="site-submenu">
                     <li><a class="site-submenu-link" href="./kelvin-helmholtz.html">Kelvin-Helmholtz</a></li>
                     <li><a class="site-submenu-link" href="./rayleigh-taylor.html">Rayleigh-Taylor</a></li>
+                    <li><a class="site-submenu-link" href="./richtmyer-meshkov.html">Richtmyer-Meshkov</a></li>
                 </ul>
             </li>
             <li><a href="./shock-tube.html" class="site-nav-link px-6 py-2 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-white/20 md:px-4 md:rounded-lg" aria-current="page">Shock Tube</a></li>
@@ -215,6 +216,7 @@
         </ul>
     </div>
 </nav>
+
 <script data-site-header>
 // Connect navigation without waiting for any application modules.
 (() => {
@@ -418,8 +420,30 @@
                             <select id="snapshotPrecision"><option value="32">32-bit</option><option value="64" selected>64-bit</option></select>
                         </div>
                         <div class="shock-estimates" aria-label="Next run estimates">
-                            <div>Estimated RAM: <span id="memoryEstimate">—</span></div>
-                            <div>Estimated CSV: <span id="csvEstimate">—</span></div>
+                            <div>Next run peak memory: <span id="memoryEstimate">—</span></div>
+                            <div><span id="csvEstimateLabel">X-T CSV upper estimate:</span> <span id="csvEstimate">—</span></div>
+                        </div>
+
+                        <div class="flex items-center gap-6 tracker-controls col-span-full">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="showTracker" checked class="w-4 h-4 mr-2 cursor-pointer accent-crimson dark:accent-green">
+                                <label for="showTracker" class="input-label mb-0 cursor-pointer">Show Tracker</label>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="input-label mb-0 mr-2 whitespace-nowrap flex-shrink-0">Line Color:</span>
+                                <select aria-label="Tracker color" id="trackerColor" class="text-xs py-1 px-2 border-black/20 rounded cursor-pointer">
+                                    <option value="black" selected>Black</option>
+                                    <option value="white">White</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="memoryNotice" class="shock-memory-notice col-span-full" hidden>
+                            <div id="resourceWarning" class="shock-resource-warning" role="status" data-app-improvement hidden></div>
+                            <label id="memoryAcknowledgement" class="shock-memory-ack" data-app-improvement hidden>
+                                <input id="allowHighMemory" type="checkbox">
+                                <span>I understand this run may slow down or crash this tab.</span>
+                            </label>
                         </div>
 
                     </div>
@@ -442,31 +466,19 @@
                                 <option value="inferno">Inferno</option>
                                 <option value="magma">Magma</option>
                             </select>
+                            <div class="mt-3">
+                                <label class="flex items-center gap-2 cursor-pointer" for="useShockGPU">
+                                    <input id="useShockGPU" type="checkbox" class="w-4 h-4 shrink-0 cursor-pointer accent-crimson dark:accent-green" aria-describedby="shockGPUHelp">
+                                    <span class="input-label mb-0">Use GPU acceleration</span>
+                                </label>
+                                <p id="shockGPUHelp" class="text-xs mt-1">Only use if calculating more than ~20,000 cells, automatically turns simulation in to 32-bit accuracy.</p>
+                            </div>
                         </div>
 
                     </div>
                 </div>
 
-                <div class="flex items-center gap-6 tracker-controls">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="showTracker" checked class="w-4 h-4 mr-2 cursor-pointer accent-crimson dark:accent-green">
-                        <label for="showTracker" class="input-label mb-0 cursor-pointer">Show Tracker</label>
-                    </div>
-                    <div class="flex items-center">
-                        <span class="input-label mb-0 mr-2 whitespace-nowrap flex-shrink-0">Line Color:</span>
-                        <select aria-label="Tracker color" id="trackerColor" class="text-xs py-1 px-2 border-black/20 rounded cursor-pointer">
-                            <option value="black" selected>Black</option>
-                            <option value="white">White</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="shock-run-controls w-full">
-                    <div id="resourceWarning" class="shock-resource-warning" role="status" data-app-improvement hidden></div>
-                    <label id="memoryAcknowledgement" class="shock-memory-ack" data-app-improvement hidden>
-                        <input id="allowHighMemory" type="checkbox">
-                        <span>I understand this run may slow down or crash this tab.</span>
-                    </label>
                     <button id="runButton" class="sim-btn run-btn-large w-full shadow-lg transform active:scale-95 transition-all">Run Simulation</button>
                     <button id="cancelButton" class="sim-btn w-full mt-2" hidden disabled>Cancel Run</button>
                     <progress id="runProgress" class="w-full mt-2" max="1" value="0" aria-label="Simulation progress" hidden></progress>
@@ -479,7 +491,7 @@
             <div>
                 <h2 class="text-center font-bold mb-4 text-crimson dark:text-green uppercase tracking-wider text-2xl">x-t Diagram</h2>
                 <p id="runStatus" class="shock-run-status" role="status" aria-live="polite">Preparing the default run…</p>
-                <canvas role="img" aria-label="Space-time diagram; use the time slider to select a snapshot" id="xtCanvas" width="800" height="500" class="w-full bg-white rounded border border-black/10" aria-describedby="shock-description"></canvas>
+                <canvas role="img" aria-label="Space-time diagram. Use the time slider to select a snapshot" id="xtCanvas" width="800" height="500" class="w-full bg-white rounded border border-black/10" aria-describedby="shock-description"></canvas>
                 
                 <div class="mt-4">
                     <label for="timeSlider" class="input-label">Snapshot time: <output id="selectedTime" for="timeSlider">—</output></label>
@@ -487,6 +499,7 @@
                 </div>
                 <div class="flex flex-wrap gap-4 justify-center mt-6">
                     <button id="exportXTBtn" class="sim-btn text-xs"><i class="fa-solid fa-table border-black/10" aria-hidden="true"></i> Export X-T Diagram (CSV)</button>
+                    <button id="exportSnapshotBtn" class="sim-btn text-xs"><i class="fa-solid fa-table border-black/10" aria-hidden="true"></i> Export Selected Snapshot (CSV)</button>
                     <button id="exportTracerBtn" class="sim-btn text-xs"><i class="fa-solid fa-route" aria-hidden="true"></i> Export Interface Tracers (CSV)</button>
                     <button id="exportPngBtn" class="sim-btn text-xs"><i class="fa-solid fa-image mr-2" aria-hidden="true"></i> Download Image (PNG)</button>
                 </div>
@@ -514,13 +527,13 @@
                 </summary>
                 <div class="p-8 border-t border-black/5 dark:border-white/5 text-base leading-relaxed text-black dark:text-white">
                     <p class="mb-4">
-                        Enter a positive length, density, and pressure for each section, with gamma greater than 1 and positive molecular weight. Choose which thermodynamic variable to calculate from the other two. Preset gas properties are constant approximations; they do not model temperature-dependent heat capacities, real-gas effects, or chemical reactions.
+                        Enter a positive length, density, and pressure for each section, with gamma greater than 1 and positive molecular weight. Choose which thermodynamic variable to calculate from the other two. Preset gas properties are constant approximations. They do not model temperature-dependent heat capacities, real-gas effects, or chemical reactions.
                     </p>
                     <p class="mb-4">
                         Select "Run Simulation" to generate the results. Click or tap a time on the x-t diagram, or use the time slider and arrow keys, to select a stored snapshot. The line graphs show density, pressure, and velocity versus position at that time. Hovering reports the nearest snapshot and cell center.
                     </p>
                     <p>
-                        For the default Sod setup, dotted curves show the exact solution until the first wave reaches a boundary. This checks the numerical solution against an idealized reference; it does not validate a laboratory shock tube. CSV files include full-precision values, explicit units, and the completed run settings in their first comment line.
+                        For the default Sod setup, dotted curves show the exact solution until the first wave reaches a boundary. This checks the numerical solution against an idealized reference. It does not validate a laboratory shock tube. CSV files include full-precision values, explicit units, and the completed run settings in their first comment line. Export Selected Snapshot saves every cell at the time selected on the slider or x-t diagram, including density, velocity, pressure, and temperature.
                     </p>
                 </div>
             </details>
@@ -559,7 +572,7 @@
                     </p>
                     <ul class="list-disc list-inside space-y-2 mb-6 ml-4">
                         <li><strong>The Expansion Fan (Rarefaction):</strong> A series of waves moving back into the high-pressure side that smoothly lower the pressure.</li>
-                        <li><strong>The Contact Discontinuity:</strong> The boundary between the original "left" and "right" gases. Pressure and velocity are continuous across it; density, temperature, and composition may jump.</li>
+                        <li><strong>The Contact Discontinuity:</strong> The boundary between the original "left" and "right" gases. Pressure and velocity are continuous across it. Density, temperature, and composition may jump.</li>
                         <li><strong>The Shock Wave:</strong> A sharp, thin front moving into the low-pressure side that causes a sudden spike in density and pressure.</li>
                     </ul>
 
@@ -578,7 +591,7 @@
                     
                     <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">Summary</h3>
                     <p class="mb-4">
-                        This simulation uses first-order finite volumes and an HLLC approximate Riemann solver, with a more diffusive Rusanov fallback for invalid intermediate states. Four-stage, third-order SSP Runge-Kutta integration advances the fluid state, material mass, and volume fractions together. The spatial scheme remains first order; shocks and interfaces broaden across several cells.
+                        This simulation uses first-order finite volumes and an HLLC approximate Riemann solver, with a more diffusive Rusanov fallback for invalid intermediate states. Four-stage, third-order SSP Runge-Kutta integration advances the fluid state, material mass, and volume fractions together. The spatial scheme remains first order. Shocks and interfaces broaden across several cells.
                     </p>
 
                     <h3 class="font-bold uppercase tracking-widest text-sm mb-3 text-crimson dark:text-green">The Riemann Problem</h3>
@@ -606,7 +619,7 @@
                         The CFL number limits each time step using the local wave speeds. Every stage is checked for finite, positive density and pressure, and failed steps are retried with a smaller step. CFL control alone does not guarantee accuracy or physical validity. Runs stop with an error if the state cannot be resolved, or if the time, step, or storage limits are exceeded.
                     </p>
                     <p>
-                        The x-t diagram shows position horizontally and time vertically. Colors use the nearest stored snapshot; profiles use the actual cell centers. Interface markers follow the interpolated velocity and stop when they leave the tube. In physical units, temperature is a cell number-weighted value; a cell crossing a material interface can contain gases at different temperatures. Open boundaries copy the adjacent state and can reflect some waves; they are not exact nonreflecting boundaries.
+                        The x-t diagram shows position horizontally and time vertically. Colors use the nearest stored snapshot. Profiles use the actual cell centers. Interface markers follow the interpolated velocity and stop when they leave the tube. In physical units, temperature is a cell number-weighted value. A cell crossing a material interface can contain gases at different temperatures. Open boundaries copy the adjacent state and can reflect some waves. They are not exact nonreflecting boundaries.
                     </p>
                     <p class="mt-4">
                         Material volume fractions set the pressure closure, while conservative partial densities set molecular weight and temperature. No physical mixing or diffusion is modeled. Thin sections retain their initial mass through cell-overlap averaging, but need several cells to resolve their waves. Use shorter runs and finer grids to check whether the result has converged.

@@ -35,7 +35,7 @@ export function initLogistic() {
     const bfDotColor = 'rgba(0, 0, 0, 0.45)';       
     const scrubberColor = 'rgba(220, 38, 38, 0.8)'; 
 
-    // Adjusted Padding for the smaller 250px window
+    // Plot margins in display pixels.
     const pLeft = 60;
     const pRight = 20;
     const pTop = 20;
@@ -100,6 +100,7 @@ export function initLogistic() {
         });
     }
 
+    // Cache logistic-map attractors after discarding each trajectory's transient.
     function preRenderBifurcation() {
         offCtx.fillStyle = '#ffffff';
         offCtx.fillRect(0, 0, offscreenCanvas._logW, offscreenCanvas._logH);
@@ -115,12 +116,14 @@ export function initLogistic() {
         const graphW = offscreenCanvas._logW - pLeft - pRight;
         const graphH = offscreenCanvas._logH - pTop - pBottom;
 
+        // Bound rendering work to 2048 parameter samples at up to 2x display density.
         const samples = Math.min(2048, Math.ceil(graphW * Math.min(2, window.devicePixelRatio || 1)));
         const dot = graphW / samples;
         for (let sample = 0; sample < samples; sample++) {
             const px = sample * dot;
             let testR = ((sample + 0.5) / samples) * 4.0;
             let x = 0.5;
+            // Discard 1000 transient iterates, then plot 100 attractor samples.
             for (let i = 0; i < 1000; i++) x = testR * x * (1 - x);
             for (let i = 0; i < 100; i++) {
                 x = testR * x * (1 - x);

@@ -1,6 +1,4 @@
-// Shared variable-density incompressible solver for the RT and KH demonstrations. This file
-// owns grid layout, WebGL resources, timestepping, multigrid, diagnostics, and snapshots so each
-// problem file can stay focused on its own initial conditions, parameters, and browser controls.
+// Shared variable-density incompressible projection solver for RT and KH.
 
 import { INSTABILITY_VERTEX } from './instability-gpuaccel.js';
 
@@ -8,7 +6,7 @@ import { INSTABILITY_VERTEX } from './instability-gpuaccel.js';
 // - Variable-density incompressible flow on a staggered MAC grid.
 // - SSP-RK2 finite-volume advection for material fraction.
 // - Midpoint semi-Lagrangian advection for face-centered velocity.
-// - Pressure projection with a geometric multigrid pressure solve.
+// - Pressure projection with multigrid, or preconditioned CG at high density contrast.
 
 export const INSTABILITY_RESOLUTIONS = Object.freeze([
   { label: 'Lowest', value: 64 },
@@ -18,7 +16,10 @@ export const INSTABILITY_RESOLUTIONS = Object.freeze([
   { label: 'Highest', value: 384 },
 ]);
 
+// Browser history budget in decimal MB, separate from working-field storage.
 export const INSTABILITY_HISTORY_BYTES = 128 * 1000 * 1000;
+// Switch to preconditioned CG when density contrast strains standalone multigrid.
+const HIGH_ATWOOD_THRESHOLD = 0.80;
 
 // Display palettes. These never change the material field.
 export const INSTABILITY_PALETTES = Object.freeze({
@@ -62,6 +63,9 @@ export function instabilityLayout(resolution, cfg) {
   levels.forEach((level, index) => {
     workingBytes += level.width * level.height * (index ? 20 : 16);
   });
+  const highContrast = cfg.atwood > HIGH_ATWOOD_THRESHOLD;
+  // CG vector fields plus three RGBA scalars for products kept on the GPU.
+  if (highContrast) workingBytes += 28 * nx * ny + 48;
   // RGBA diagnostic reduction pyramid.
   for (let width = nx, height = ny; ; width = Math.ceil(width / 2), height = Math.ceil(height / 2)) {
     workingBytes += 16 * width * height;
@@ -79,6 +83,7 @@ export function instabilityLayout(resolution, cfg) {
     ny,
     h,
     levels,
+    highContrast,
     workingBytes,
     snapshotBytes,
     historyLimit,
@@ -128,7 +133,8 @@ export class InstabilitySolver {
       for (const [name, source] of Object.entries(shaders))
         this.programs[name] = this.program(source, name);
 
-      // Ping-pong simulation fields.
+      // RG32F stores left-face u and bottom-face v, with an extra top boundary row.
+      // R32F stores cell-centered material fraction and pressure impulse.
       this.velocity = this.pair(this.nx, this.ny + 1, 2);
       this.material = this.pair(this.nx, this.ny, 1);
       this.materialStage = this.target(this.nx, this.ny, 1);
@@ -143,6 +149,17 @@ export class InstabilitySolver {
           residual: this.target(width, height, 1),
           material: this.levels.length ? this.target(width, height, 1) : this.material.read,
         });
+      }
+      if (this.layout.highContrast) {
+        this.cg = {
+          pressure: this.pair(this.nx, this.ny, 1),
+          residual: this.pair(this.nx, this.ny, 1),
+          direction: this.pair(this.nx, this.ny, 1),
+          applied: this.target(this.nx, this.ny, 1),
+          products: this.pair(1, 1, 4),
+          curvature: this.target(1, 1, 4),
+          previousDt: 0,
+        };
       }
       // GPU reduction hierarchy for CFL and convergence diagnostics.
       for (let w = this.nx, h = this.ny; ; w = Math.ceil(w / 2), h = Math.ceil(h / 2)) {
@@ -204,7 +221,7 @@ export class InstabilitySolver {
     }
   }
 
-  // Store viewing snapshots in two bytes per cell without CPU readback.
+  // Allocate float working fields or packed RG8 viewing snapshots.
   target(width, height, channels, packed = false) {
     const gl = this.gl;
     const allocationError = 'The simulation buffers could not be allocated. Try the lower resolution.';
@@ -318,12 +335,14 @@ export class InstabilitySolver {
   }
 
   // Weighted Jacobi pressure smoothing.
-  smooth(level, count) {
+  smooth(level, count, constantDensity = false) {
     for (let i = 0; i < count; i++) {
       this.draw(
-        'smooth',
+        constantDensity ? 'smoothConstant' : 'smooth',
         level.pressure.write,
-        { pressure: level.pressure.read, rhs: level.rhs, material: level.material },
+        constantDensity
+          ? { pressure: level.pressure.read, rhs: level.rhs }
+          : { pressure: level.pressure.read, rhs: level.rhs, material: level.material },
         {},
         level
       );
@@ -331,27 +350,40 @@ export class InstabilitySolver {
     }
   }
 
-  // Multigrid removes large-scale pressure error without hundreds of fine-grid sweeps.
-  cycle(index = 0) {
+  // Apply a multigrid V-cycle with weighted Jacobi smoothing.
+  cycle(index = 0, constantDensity = false) {
     const level = this.levels[index];
     if (index === this.levels.length - 1) {
       // Approximate the coarsest solve with many smoothing sweeps.
-      this.smooth(level, Math.max(40, Math.ceil(Math.max(level.width, level.height) ** 2 / 4)));
+      this.smooth(
+        level,
+        Math.max(40, Math.ceil(Math.max(level.width, level.height) ** 2 / 4)),
+        constantDensity
+      );
       return;
     }
-    // Pre-smooth, restrict the residual, solve coarse error, then correct.
-    this.smooth(level, 4);
+    // Use two smoothing sweeps for preconditioning and four for standalone multigrid.
+    const sweeps = constantDensity ? 2 : 4;
+    this.smooth(level, sweeps, constantDensity);
     this.draw(
-      'residual',
+      constantDensity ? 'residualConstant' : 'residual',
       level.residual,
-      { pressure: level.pressure.read, rhs: level.rhs, material: level.material },
+      constantDensity
+        ? { pressure: level.pressure.read, rhs: level.rhs }
+        : { pressure: level.pressure.read, rhs: level.rhs, material: level.material },
       {},
       level
     );
     const coarse = this.levels[index + 1];
-    this.draw('restrict', coarse.rhs, { source: level.residual }, {}, coarse);
+    this.draw(
+      constantDensity ? 'restrictPressure' : 'restrict',
+      coarse.rhs,
+      { source: level.residual },
+      {},
+      coarse
+    );
     this.clear(coarse.pressure.read);
-    this.cycle(index + 1);
+    this.cycle(index + 1, constantDensity);
     this.draw(
       'prolong',
       level.pressure.write,
@@ -361,7 +393,115 @@ export class InstabilitySolver {
     );
     this.swap(level.pressure);
     // Post-smoothing removes high-frequency error from prolongation.
-    this.smooth(level, 4);
+    this.smooth(level, sweeps, constantDensity);
+  }
+
+  // GPU vector operations and reductions for the high-contrast pressure solve.
+  combinePressure(pair, a, b, aScale, bScale, offset = 0) {
+    this.draw('pressureVector', pair.write, { a, b }, { aScale, bScale, offset });
+    this.swap(pair);
+  }
+
+  pressureProducts(a, b, target = this.reductions[this.reductions.length - 1]) {
+    // Products reduce 4x4 cells directly, skipping two full-size intermediates.
+    // Return the scalar texture so CG coefficients never require a CPU readback.
+    this.draw('pressureProducts', this.reductions[2], { a, b });
+    for (let i = 2; i < this.reductions.length - 1;) {
+      const next = Math.min(i + 2, this.reductions.length - 1);
+      this.draw('pressureReduce', next === this.reductions.length - 1 ? target : this.reductions[next],
+        { source: this.reductions[i] },
+        { reductionScale: 2 ** (next - i) });
+      i = next;
+    }
+    return target;
+  }
+
+  centerPressure(pair, scale = 1) {
+    // Periodic/no-flow boundaries leave an arbitrary constant pressure mode.
+    const statistics = this.pressureProducts(pair.read, pair.read);
+    this.draw('pressureCenter', pair.write, { source: pair.read, statistics }, { scale });
+    this.swap(pair);
+  }
+
+  preconditionPressure() {
+    const level = this.levels[0], residual = this.cg.residual.read;
+    // The existing smoother solves Laplacian(z) = rhs, so negate the CG residual.
+    this.draw('pressureVector', level.rhs, { a: residual, b: residual },
+      { aScale: -1, bScale: 0, offset: 0 });
+    this.clear(level.pressure.read);
+    // Constant-density multigrid is only a preconditioner. The CG operator and
+    // final projection still use the full density contrast, including A = 0.99.
+    this.cycle(0, true);
+    this.centerPressure(level.pressure);
+    return level.pressure.read;
+  }
+
+  // Solve the variable-density pressure equation with multigrid-preconditioned CG.
+  solveHighContrastPressure(dt) {
+    const cg = this.cg, tolerance = this.config.pressureTolerance;
+    // Stored pressure is a timestep-integrated pressure impulse.
+    if (cg.previousDt > 0)
+      this.combinePressure(cg.pressure, cg.pressure.read, cg.pressure.read,
+        dt / cg.previousDt, 0);
+    const project = () => {
+      this.draw('project', this.velocity.write, {
+        velocity: this.velocity.read,
+        pressure: cg.pressure.read,
+        material: this.material.read,
+      });
+      this.measure(this.velocity.write);
+    };
+    project();
+    let iterations = 0;
+    // Cap pressure work at 256 iterations, with a recurrence restart every 32.
+    while (this.stats[2] * dt > tolerance && iterations < 256) {
+      // Restart from projected velocity to limit float32 residual drift.
+      this.draw('divergence', cg.residual.read, { velocity: this.velocity.write });
+      this.centerPressure(cg.residual, -1);
+      let z = this.preconditionPressure();
+      this.pressureProducts(cg.residual.read, z, cg.products.read);
+      this.combinePressure(cg.direction, z, z, 1, 0);
+
+      // Keep CG coefficients on the GPU. Only read diagnostics once per four
+      // iterations, checking the actual projected velocity at the same tolerance.
+      for (let block = 0; block < 32 && iterations < 256; block++) {
+        iterations++;
+        this.draw('pressureApply', cg.applied, {
+          source: cg.direction.read, material: this.material.read,
+        });
+        this.pressureProducts(cg.direction.read, cg.applied, cg.curvature);
+        // The recurrence uses half the tolerance as a margin for the projection check.
+        for (const [pair, b, directionScale] of [
+          [cg.pressure, cg.direction.read, 1],
+          [cg.residual, cg.applied, -1],
+        ]) {
+          this.draw('pressureAxpy', pair.write, {
+            a: pair.read, b, numerator: cg.products.read, denominator: cg.curvature,
+          }, { directionScale, residualTolerance: 0.5 * tolerance / dt });
+          this.swap(pair);
+        }
+        if ((block + 1) % 4 === 0 || iterations === 256) {
+          project();
+          if (this.stats[2] * dt <= tolerance) {
+            cg.previousDt = dt;
+            return iterations;
+          }
+        }
+        if (block === 31) break;
+        z = this.preconditionPressure();
+        this.pressureProducts(cg.residual.read, z, cg.products.write);
+        this.draw('pressureDirection', cg.direction.write, {
+          preconditioned: z, direction: cg.direction.read,
+          previous: cg.products.read, next: cg.products.write,
+        });
+        this.swap(cg.direction);
+        this.swap(cg.products);
+      }
+      this.centerPressure(cg.pressure);
+      project();
+    }
+    cg.previousDt = dt;
+    return iterations;
   }
 
   // Read four reduced values instead of copying the full fluid state to JavaScript.
@@ -383,6 +523,7 @@ export class InstabilitySolver {
     }
   }
 
+  // Limit the timestep by advection, buoyancy, diffusion, and the next saved time.
   nextDt() {
     const h = this.h,
       cfg = this.config;
@@ -399,6 +540,7 @@ export class InstabilitySolver {
     return dt;
   }
 
+  // Advance material and velocity, then project onto a divergence-free MAC field.
   step(dt = this.nextDt()) {
     dt = Math.min(dt, this.nextDt());
     if (!Number.isFinite(dt) || dt <= 0)
@@ -420,7 +562,7 @@ export class InstabilitySolver {
 
     // Restrict material/density to the multigrid hierarchy.
     this.levels[0].material = this.material.read;
-    for (let i = 1; i < this.levels.length; i++)
+    for (let i = 1; !this.cg && i < this.levels.length; i++)
       this.draw(
         'restrict',
         this.levels[i].material,
@@ -440,20 +582,24 @@ export class InstabilitySolver {
     // Pressure projection: solve for pressure and enforce divergence-free flow.
     // Pressure is defined only up to an additive constant. Projection uses only its gradient,
     // so the multigrid solve does not need to pin an arbitrary reference pressure.
-    this.draw('divergence', this.levels[0].rhs, { velocity: this.velocity.read });
     let cycles = 0;
-    // Cap pressure work to six V-cycles per timestep.
-    do {
-      this.cycle();
-      cycles++;
-      this.draw('project', this.velocity.write, {
-        velocity: this.velocity.read,
-        pressure: this.levels[0].pressure.read,
-        material: this.material.read,
-      });
-      this.measure(this.velocity.write);
-    } while (this.stats[2] * dt > this.config.pressureTolerance && cycles < 6);
-    // Hard failure threshold after the bounded pressure solve.
+    if (this.cg) {
+      cycles = this.solveHighContrastPressure(dt);
+    } else {
+      this.draw('divergence', this.levels[0].rhs, { velocity: this.velocity.read });
+      // Limit standalone multigrid to six V-cycles before the hard divergence check.
+      do {
+        this.cycle();
+        cycles++;
+        this.draw('project', this.velocity.write, {
+          velocity: this.velocity.read,
+          pressure: this.levels[0].pressure.read,
+          material: this.material.read,
+        });
+        this.measure(this.velocity.write);
+      } while (this.stats[2] * dt > this.config.pressureTolerance && cycles < 6);
+    }
+    // Reject a remaining volume error above 0.2% per step after the bounded solve.
     if (this.stats[2] * dt > 0.002)
       throw new Error('The pressure solve could not settle. Reset or try the lower resolution.');
     this.swap(this.velocity);
@@ -505,7 +651,7 @@ export class InstabilitySolver {
 
   render() {
     const rect = this.canvas.getBoundingClientRect();
-    // Cap display pixel density; simulation resolution is unchanged.
+    // Cap display pixel density without changing simulation resolution.
     const scale = Math.min(globalThis.devicePixelRatio || 1, 2);
     const width = Math.max(2, Math.round(rect.width * scale));
     const height = Math.max(4, Math.round(rect.height * scale));

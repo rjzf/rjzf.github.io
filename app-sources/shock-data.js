@@ -7,6 +7,7 @@ import {
     MEMORY_WARNING,
     MEMORY_ACKNOWLEDGEMENT,
     estimateResources,
+    measureResultMemory,
     unitSystems,
     unitLabel,
     getGasConstant,
@@ -28,7 +29,7 @@ export function initShockTube() {
     const progress = document.getElementById('runProgress');
     const acknowledgement = document.getElementById('allowHighMemory');
     const resourceWarning = document.getElementById('resourceWarning');
-    const exportIds = ['exportXTBtn', 'exportTracerBtn', 'exportPngBtn'];
+    const exportIds = ['exportXTBtn', 'exportSnapshotBtn', 'exportTracerBtn', 'exportPngBtn'];
     let solver = null,
         worker = null,
         revision = 0,
@@ -38,6 +39,8 @@ export function initShockTube() {
     let lastProgressAnnouncement = -1;
     let estimates = null, estimateFrame = null, acknowledgedBytes = 0, requiredBytes = 0;
     let exportRequest = null, exportCancelled = false;
+    let retainedHistoryBytes = 0, completedReferenceKey = null;
+    const csvEstimateCache = new Map();
     const visualizer = new ShockVisuals();
 
     // Mark displayed results as belonging to earlier inputs.
@@ -65,14 +68,36 @@ export function initShockTube() {
         estimateFrame = requestAnimationFrame(() => { estimateFrame = null; updateEstimates(); });
     }
 
+    // A different resolution/precision can reuse representative CSV field widths
+    // from the same physical setup. Different physics needs a fresh run first.
+    function resourceReferenceKey(config, slabs) {
+        const { gridCells, snapshotPrecision, displayUnits, gpuAcceleration, ...physics } = config;
+        return JSON.stringify({ physics, slabs });
+    }
+
+    function csvSize(config, system = config.displayUnits) {
+        const key = JSON.stringify([config.gridCells, config.maxTime, config.snapshotInterval, config.snapshotPrecision, system]);
+        if (!csvEstimateCache.has(key)) csvEstimateCache.set(key, estimateXTCSVSize(solver, system, config));
+        return csvEstimateCache.get(key);
+    }
+
     // Include completed results and canvas buffers in the next-run estimate.
     function updateEstimates() {
         try {
             const config = buildConfig(false), slabs = buildSlabs();
-            const retained = solver ? estimateResources(solver.config, solver.config.slabs.length).historyBytes : 0;
-            estimates = estimateResources(config, slabs.length, retained, visualizer.memoryBytes());
+            estimates = estimateResources(config, slabs.length, retainedHistoryBytes, visualizer.memoryBytes());
             document.getElementById('memoryEstimate').textContent = memoryLabel(estimates.runBytes);
-            document.getElementById('csvEstimate').textContent = memoryLabel(estimates.csvBytes);
+            const referenceMatches = solver && completedReferenceKey === resourceReferenceKey(config, slabs);
+            const csv = referenceMatches ? csvSize(config) : null;
+            document.getElementById('csvEstimateLabel').textContent = csv ? 'Estimated X-T CSV:' : 'X-T CSV upper estimate:';
+            document.getElementById('csvEstimate').textContent = memoryLabel(csv?.bytes ?? estimates.csvBytes);
+            document.getElementById('csvEstimate').title = csv
+                ? 'Uses the export number formatting and sampled saved fields. Changes in the solution can change the file size.'
+                : 'Conservative text-size allowance until this setup has been simulated. Actual CSV files are usually smaller.';
+            document.getElementById('memoryEstimate').title =
+                `Peak allocation for the next run, not current RAM use. Includes ${memoryLabel(retainedHistoryBytes)} of retained results, ` +
+                `${memoryLabel(estimates.historyBytes)} of new results, ${memoryLabel(estimates.gpuBufferBytes)} of GPU buffers, ` +
+                `solver and plotting buffers, and ${memoryLabel(estimates.overheadBytes)} of browser overhead allowance. GPU buffers may use shared RAM or dedicated memory.`;
         } catch {
             estimates = null;
             document.getElementById('memoryEstimate').textContent = '—';
@@ -86,11 +111,12 @@ export function initShockTube() {
         }
         document.getElementById('memoryAcknowledgement').hidden = !high;
         const warning = requiredBytes >= MEMORY_WARNING;
+        document.getElementById('memoryNotice').hidden = !warning;
         resourceWarning.hidden = !warning;
-        const phase = exportRequest ? 'CSV export' : 'This run';
+        const phase = exportRequest ? 'CSV export' : 'The next run';
         resourceWarning.textContent = high
-            ? `${phase} may use ${memoryLabel(requiredBytes)} of RAM. ${acknowledgement.checked ? 'High memory use acknowledged.' : 'Acknowledge high memory use to continue.'}`
-            : warning ? `${phase} may use ${memoryLabel(requiredBytes)} of RAM. Fewer cells or snapshots use less memory.` : '';
+            ? `${phase} may use ${memoryLabel(requiredBytes)} of memory. ${acknowledgement.checked ? 'High memory use acknowledged.' : 'Acknowledge high memory use to continue.'}`
+            : warning ? `${phase} may use ${memoryLabel(requiredBytes)} of memory. Fewer cells or snapshots use less memory.` : '';
         updateButtons();
     }
 
@@ -115,7 +141,7 @@ export function initShockTube() {
     function buildConfig(showErrors = true) {
         const system = document.getElementById('unitSystem').value;
         try {
-            return validateConfig({
+            const config = validateConfig({
                 gridCells: document.getElementById('gridCells').value,
                 cflNumber: document.getElementById('cflNumber').value,
                 maxTime: document.getElementById('maxTime').value,
@@ -126,6 +152,7 @@ export function initShockTube() {
                 unitSystem: system === 'arbitrary' ? 'arbitrary' : 'mks',
                 displayUnits: system
             });
+            return { ...config, gpuAcceleration: document.getElementById('useShockGPU').checked };
         } catch (error) {
             const fields = { 'Grid cells': 'gridCells', 'CFL number': 'cflNumber', 'Max time': 'maxTime', 'Snapshot interval': 'snapshotInterval', 'Too many snapshots': 'snapshotInterval' };
             const match = Object.entries(fields).find(([label]) => error.message.startsWith(label));
@@ -189,9 +216,10 @@ export function initShockTube() {
             lastProgressAnnouncement = -1;
             updateButtons();
             status.textContent = 'Running simulation…';
-            const candidate = new Worker(new URL('./shock-physics.js', import.meta.url), {
-                type: 'module'
-            });
+            const gpuAcceleration = document.getElementById('useShockGPU').checked;
+            const candidate = gpuAcceleration
+                ? new Worker(new URL('./shock-physics-gpuaccel.js', import.meta.url), { type: 'module' })
+                : new Worker(new URL('./shock-physics.js', import.meta.url), { type: 'module' });
             worker = candidate;
             candidate.addEventListener('message', (event) => {
                 if (worker !== candidate) return;
@@ -217,6 +245,9 @@ export function initShockTube() {
                         visualizer.setDisplayUnits(document.getElementById('unitSystem').value);
                         visualizer.renderAll();
                         solver = result;
+                        retainedHistoryBytes = measureResultMemory(result).historyBytes;
+                        completedReferenceKey = resourceReferenceKey(config, slabs);
+                        csvEstimateCache.clear();
                         lastRunRevision = runRevision;
                         const warnings = result.diagnostics.warnings.join(' ');
                         const fallback = result.diagnostics.fallbackFluxes
@@ -224,7 +255,7 @@ export function initShockTube() {
                             : '';
                         const changed =
                             revision !== runRevision
-                                ? ' Inputs changed during the run; run again to apply them.'
+                                ? ' Inputs changed during the run. Run again to apply them.'
                                 : '';
                         const duration = (result.diagnostics.calculationMs / 1000).toFixed(2);
                         status.textContent = `Complete: ${result.diagnostics.timeSteps.toLocaleString()} steps - ${result.history.length.toLocaleString()} snapshots - ${duration} s compute time${changed}${fallback}${warnings ? ` ${warnings}` : ''}`;
@@ -253,7 +284,7 @@ export function initShockTube() {
                 status.textContent = `Run failed: ${event.message || 'The simulation worker could not start.'}${solver ? ' Previous results are retained.' : ''}`;
                 finishWorker();
             });
-            candidate.postMessage({ config, slabs });
+            candidate.postMessage({ config, slabs, gpuAcceleration });
         } catch (error) {
             const match = error.message.match(/Section (\d+) (length|density|pressure|velocity|gamma|molecular weight|mw)/i);
             if (match) {
@@ -288,11 +319,14 @@ export function initShockTube() {
         'maxTime',
         'snapshotInterval',
         'snapshotPrecision',
+        'useShockGPU',
         'leftBoundary',
         'rightBoundary'
     ];
     for (const event of ['input', 'change'])
         document.querySelector('.sim-ctrl-card').addEventListener(event, (e) => {
+            if (event === 'change' && e.target.id === 'useShockGPU' && e.target.checked)
+                document.getElementById('snapshotPrecision').value = '32';
             if (inputIds.includes(e.target.id)) fieldError(e.target);
             if (inputIds.includes(e.target.id) || e.target.closest('.slab-container')) markChanged();
         });
@@ -318,9 +352,14 @@ export function initShockTube() {
     }
 
     // Build CSV in small chunks while keeping controls responsive.
-    async function exportCSV(rows, filename, csvBytes) {
+    async function exportCSV(rows, filename, size) {
         const own = estimateResources(solver.config, solver.config.slabs.length, 0, visualizer.memoryBytes());
-        exportRequest = { filename, peakBytes: Math.max(own.residentBytes + csvBytes * 3, exportRequest?.filename === filename ? exportRequest.peakBytes : 0) };
+        const residentBytes = retainedHistoryBytes + visualizer.memoryBytes() + own.overheadBytes;
+        // Budget for encoded chunks and a Blob copy, plus small encoding scratch.
+        // A sampled file estimate gets headroom. Actual encoded bytes are checked below.
+        const csvBudget = size.bytes * (size.sampled ? 1.1 : 1);
+        const exportPeak = bytes => residentBytes + bytes * 2 + 2 * 1024 * 1024;
+        exportRequest = { filename, peakBytes: Math.max(exportPeak(csvBudget), exportRequest?.filename === filename ? exportRequest.peakBytes : 0) };
         updateEstimates();
         if (requiredBytes > MEMORY_ACKNOWLEDGEMENT && requiredBytes > acknowledgedBytes) {
             status.textContent = 'Acknowledge high memory use beside Run, then choose Export again.';
@@ -334,7 +373,7 @@ export function initShockTube() {
         try {
             const parts = [];
             const checkPeak = bytes => {
-                const peak = own.residentBytes + bytes * 3;
+                const peak = exportPeak(bytes);
                 if (peak > MEMORY_ACKNOWLEDGEMENT && peak > acknowledgedBytes) {
                     exportRequest.peakBytes = peak;
                     updateEstimates();
@@ -377,11 +416,16 @@ export function initShockTube() {
 
     document.getElementById('exportXTBtn').addEventListener('click', () => {
         if (solver && !busy && !exporting)
-            exportCSV(xtCSVRows(solver, visualizer.displayUnits), 'xt_heatmap_data.csv', estimateResources(solver.config, solver.config.slabs.length).csvBytes);
+            exportCSV(xtCSVRows(solver, visualizer.displayUnits), 'xt_heatmap_data.csv', csvSize(solver.config, visualizer.displayUnits));
+    });
+    document.getElementById('exportSnapshotBtn').addEventListener('click', () => {
+        if (!solver || busy || exporting) return;
+        const index = visualizer.currentTimeIndex, system = visualizer.displayUnits;
+        exportCSV(snapshotCSVRows(solver, index, system), `shock_snapshot_${index}.csv`, estimateSnapshotCSVSize(solver, index, system));
     });
     document.getElementById('exportTracerBtn').addEventListener('click', () => {
         if (solver && !busy && !exporting)
-            exportCSV(tracerCSVRows(solver, visualizer.displayUnits), 'tracer_data.csv', estimateResources(solver.config, solver.config.slabs.length).tracerCsvBytes);
+            exportCSV(tracerCSVRows(solver, visualizer.displayUnits), 'tracer_data.csv', estimateTracerCSVSize(solver, visualizer.displayUnits));
     });
     document.getElementById('exportPngBtn').addEventListener('click', () => {
         if (!solver) return;
@@ -704,7 +748,7 @@ export function initShockUI(onChange) {
             });
         } else if (nextSystem !== currentSystem) {
             onChange(
-                'Unit scales changed. Values were reinterpreted; run again to use these inputs.'
+                'Unit scales changed. Values were reinterpreted. Run again to use these inputs.'
             );
         }
         currentSystem = nextSystem;
@@ -837,13 +881,13 @@ export function resultMetadata(result, system = result.config.displayUnits) {
         snapshotPrecision: result.config.snapshotPrecision ?? '64',
         fieldSignificantDigits: result.config.snapshotPrecision === '32' ? 9 : 17,
         createdAt: result.createdAt,
-        model: '1D inviscid calorically perfect gases; no heat conduction, viscosity, reactions, or species diffusion',
-        method: 'First-order finite volumes; HLLC with Rusanov fallback; SSP-RK(4,3)',
+        model: '1D inviscid calorically perfect gases. No heat conduction, viscosity, reactions, or species diffusion',
+        method: 'First-order finite volumes, HLLC with Rusanov fallback, SSP-RK(4,3)',
         temperature:
             result.config.unitSystem === 'arbitrary'
-                ? 'p/rho; specific gas constant = 1 for all materials'
-                : 'p / (Ru * sum(partial density / MW)); cell number-weighted temperature',
-        internalUnits: result.config.unitSystem === 'arbitrary' ? 'arbitrary' : 'SI; MW in g/mol',
+                ? 'p/rho, specific gas constant = 1 for all materials'
+                : 'p / (Ru * sum(partial density / MW)), cell number-weighted temperature',
+        internalUnits: result.config.unitSystem === 'arbitrary' ? 'arbitrary' : 'SI, MW in g/mol',
         universalGasConstant: result.config.unitSystem === 'arbitrary' ? null : Ru,
         outputUnits: system,
         config: result.config,
@@ -852,9 +896,13 @@ export function resultMetadata(result, system = result.config.displayUnits) {
 }
 
 // Yield every stored cell and time as CSV rows.
-export function* xtCSVRows(result, system = result.config.displayUnits) {
+export function* xtCSVRows(result, system = result.config.displayUnits, snapshotIndex = null) {
     const metadata = resultMetadata(result, system),
         units = unitSystems[system];
+    if (snapshotIndex !== null) {
+        validateSnapshotIndex(result, snapshotIndex);
+        metadata.selection = { snapshotIndex, time: result.history[snapshotIndex].t };
+    }
     yield `# ${JSON.stringify(metadata)}\r\n`;
     yield [
         ['Time', units.tLbl],
@@ -866,7 +914,7 @@ export function* xtCSVRows(result, system = result.config.displayUnits) {
     ]
         .map(([name, unit]) => unitLabel(name, unit, ''))
         .join(',') + '\r\n';
-    for (const snap of result.history) {
+    for (const snap of snapshotIndex === null ? result.history : [result.history[snapshotIndex]]) {
         for (let i = 0; i < result.x.length; i++)
             yield [
                 snap.t,
@@ -879,10 +927,112 @@ export function* xtCSVRows(result, system = result.config.displayUnits) {
     }
 }
 
+function validateSnapshotIndex(result, index) {
+    if (!Number.isInteger(index) || index < 0 || index >= result.history.length)
+        throw new Error('Select a saved snapshot before exporting.');
+}
+
+// Preserve the full-run CSV columns, units and precision for just the displayed time.
+export function* snapshotCSVRows(result, index, system = result.config.displayUnits) {
+    validateSnapshotIndex(result, index);
+    yield* xtCSVRows(result, system, index);
+}
+
+export function estimateSnapshotCSVSize(result, index, system = result.config.displayUnits) {
+    validateSnapshotIndex(result, index);
+    const selected = { ...result, history: [result.history[index]] };
+    const estimate = estimateXTCSVSize(selected, system);
+    const extraMetadata = csvHeaderBytes(snapshotCSVRows(result, index, system)) - csvHeaderBytes(xtCSVRows(selected, system));
+    return { ...estimate, bytes: estimate.bytes + extraMetadata };
+}
+
 // Export meaningful digits without padded zeros.
 function formatField(value, digits) {
     if (!Number.isFinite(value)) throw new Error('Export units exceed numerical precision.');
     return Number(value.toPrecision(digits)).toString();
+}
+
+// Stratified samples carry their exact number of represented rows. Bound work
+// independently of grid/history size so resource estimates do not export a file.
+function* sizeSamples(count, limit) {
+    const samples = Math.min(count, limit);
+    for (let i = 0; i < samples; i++) {
+        const start = Math.floor(i * count / samples), end = Math.floor((i + 1) * count / samples);
+        yield { index: Math.floor((start + end - 1) / 2), weight: end - start };
+    }
+}
+
+function csvHeaderBytes(rows) {
+    return new TextEncoder().encode(rows.next().value + rows.next().value).byteLength;
+}
+
+const csvFieldSamples = new WeakMap();
+
+// CSV is variable-length text, not the binary snapshot size. Count metadata and
+// coordinates separately and sample the actual field formatter (including zeros,
+// signs and exponents). For small results every field is counted exactly.
+export function estimateXTCSVSize(result, system = result.config.displayUnits, config = result.config) {
+    resultMetadata(result, system); // same unit validation as the export
+    const units = unitSystems[system], digits = config.snapshotPrecision === '32' ? 9 : 17;
+    const n = result.x.length, s = result.history.length;
+    if (!n || !s) throw new Error('No saved data to estimate.');
+    let cache = csvFieldSamples.get(result);
+    if (!cache) { cache = new Map(); csvFieldSamples.set(result, cache); }
+    const key = `${system}:${digits}`;
+    if (!cache.has(key)) {
+        const timeLimit = n * s <= 8192 ? s : Math.min(64, s);
+        const cellLimit = n * s <= 8192 ? n : Math.max(1, Math.floor(8192 / timeLimit));
+        let fieldCharacters = 0, sampleRows = 0;
+        for (const time of sizeSamples(s, timeLimit)) {
+            const snapshot = result.history[time.index];
+            for (const cell of sizeSamples(n, cellLimit)) {
+                let length = 0;
+                for (const [field, factor] of [['rho', units.rho], ['u', units.u], ['p', units.p], ['T', units.T]]) {
+                    const value = config.snapshotPrecision === '32' ? Math.fround(snapshot[field][cell.index]) : snapshot[field][cell.index];
+                    length += formatField(value / factor, digits).length;
+                }
+                fieldCharacters += length * time.weight * cell.weight;
+                sampleRows++;
+            }
+        }
+        cache.set(key, { charactersPerRow: fieldCharacters / (n * s), sampleRows, sampled: sampleRows < n * s });
+    }
+    const fields = cache.get(key);
+    const forecast = config.gridCells !== n || config.maxTime !== result.config.maxTime ||
+        config.snapshotInterval !== result.config.snapshotInterval || config.snapshotPrecision !== result.config.snapshotPrecision;
+    const cells = config.gridCells;
+    const snapshots = forecast ? Math.max(2, Math.ceil(config.maxTime / config.snapshotInterval) + 1) : s;
+    let positionCharacters = 0, timeCharacters = 0;
+    for (const cell of sizeSamples(cells, 100000)) {
+        const x = cells === n ? result.x[cell.index] : (cell.index + .5) * (result.config.totalLength / cells);
+        positionCharacters += String(x / units.x).length * cell.weight;
+    }
+    for (const time of sizeSamples(snapshots, 10000)) {
+        const t = !forecast ? result.history[time.index].t : Math.min(time.index * config.snapshotInterval, config.maxTime);
+        timeCharacters += String(t).length * time.weight;
+    }
+    const headerBytes = forecast ? 16384 : csvHeaderBytes(xtCSVRows(result, system));
+    const bytes = headerBytes + positionCharacters * snapshots + timeCharacters * cells +
+        cells * snapshots * (fields.charactersPerRow + 7); // five commas and CRLF
+    return { bytes: Math.ceil(bytes), sampled: forecast || fields.sampled || cells > 100000 || snapshots > 10000,
+        sampleRows: fields.sampleRows, forecast };
+}
+
+export function estimateTracerCSVSize(result, system = result.config.displayUnits) {
+    const units = unitSystems[system];
+    let bytes = csvHeaderBytes(tracerCSVRows(result, system)), sampled = false;
+    const limit = Math.max(1, Math.floor(8192 / Math.max(1, result.tracers.length)));
+    for (let i = 0; i < result.tracers.length; i++) {
+        const tracer = result.tracers[i];
+        if (!tracer.path.length) throw new Error('Tracer history is missing.');
+        sampled ||= tracer.path.length > limit;
+        for (const item of sizeSamples(tracer.path.length, limit)) {
+            const point = tracer.path[item.index];
+            const event = tracer.exit && point.t === tracer.exit.t ? 'exit' : 'snapshot';
+            bytes += ([i + 1, point.t, point.x / units.x, event].join(',').length + 2) * item.weight;
+        }
+    }
+    return { bytes, sampled };
 }
 
 // Yield interface paths and boundary exits as CSV rows.
